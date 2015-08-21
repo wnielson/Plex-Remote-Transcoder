@@ -2,7 +2,7 @@
 
 A distributed transcoding backend for Plex.
 
-At the present, this is more of a working proof-of-concept.  More testing and development is
+At the present, this is really just a working proof-of-concept.  More testing and development is
 still needed, so please help by reporting bugs or with pull-requests.
 
 ## How Does it Work?
