@@ -25,7 +25,8 @@ else:
     raise NotImplementedError("This platform is not yet supported")
 
 DEFAULT_CONFIG = {
-    "servers": {}
+    "ipaddress": "",
+    "servers":   {}
 }
 
 # This is the name we give to the original transcoder, which must be renamed
@@ -37,7 +38,7 @@ REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
                "%(command)s %(args)s")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 def get_config():
     path = os.path.expanduser("~/.prt.conf")
@@ -118,12 +119,17 @@ def transcode_remote():
         "args":         ' '.join([pipes.quote(a) for a in sys.argv[1:]])
     }
 
-    if len(get_config()["servers"]) == 0:
+    config = get_config()
+
+    if len(config["servers"]) == 0:
         log.write("No hosts found...using local")
         return transcode_local()
 
-    # TODO: Decide which host to use better
-    hostname, host = get_config()["servers"].items()[0]
+    # TODO: Decide which host to use better.  For now, choose first one
+    hostname, host = config["servers"].items()[0]
+
+    # Remap the 127.0.0.1 reference to the proper address
+    command.replace("127.0.0.1", config["ipaddress"])
 
     args = ["ssh", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
 
@@ -145,6 +151,10 @@ def main():
 
     if sys.argv[1] == "install":
         print "Installing Plex Remote Transcoder"
+        config = get_config()
+        config["ipaddress"] = raw_input("IP address of this machine: ")
+        save_config(config)
+
         install_transcoder()
     elif sys.argv[1] == "add_host":
         host = raw_input("Host: ")
