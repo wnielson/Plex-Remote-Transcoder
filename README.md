@@ -7,6 +7,8 @@ still needed, so please help by reporting bugs or with pull-requests.
 
 For those interested in testing this out quickly, I've put together a step by step guide for getting this working on two Ubuntu machines.  You can find the guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Install).
 
+Addtionally, for proposed features and some current limitations, check out [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
+
 ## How Does it Work?
 
 There have been quite a few projects attempting to load balance a Plex server,
