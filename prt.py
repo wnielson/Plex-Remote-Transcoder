@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import logging
+import logging.config
 import os
 import pipes
 import shlex
@@ -11,7 +12,7 @@ import time
 
 from distutils.spawn import find_executable
 
-log = open("/tmp/plex_transcode_log", "wa")
+log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
@@ -26,7 +27,34 @@ else:
 
 DEFAULT_CONFIG = {
     "ipaddress": "",
-    "servers":   {}
+    "servers":   {},
+    "logging":   {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "simple": {
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            }
+        },
+        "handlers": {
+            "file_handler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "INFO",
+                "formatter": "simple",
+                "filename": "prt.log",
+                "maxBytes": 10485760,
+                "backupCount": 20,
+                "encoding": "utf8"
+            },
+        },
+        "loggers": {
+            "prt": {
+                "level": "DEBUG",
+                "handlers": ["file_handler"],
+                "propagate": "no"
+            }
+        }
+    }
 }
 
 # This is the name we give to the original transcoder, which must be renamed
@@ -55,6 +83,10 @@ def save_config(d):
     except Exception, e:
         print "Error loading config: %s" % str(e)
     return False
+
+def setup_logging():
+    config = get_config()
+    logging.config.dictConfig(config["logging"])
 
 def get_transcoder_path(name=NEW_TRANSCODER_NAME):
     """
@@ -97,6 +129,8 @@ def install_transcoder():
             print "Error installing new transcoder: %s" % str(e)
 
 def transcode_local():
+    setup_logging()
+
     # The transcoder needs to have the propery LD_LIBRARY_PATH
     # set, otherwise it cannot run
     os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
@@ -104,14 +138,15 @@ def transcode_local():
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
 
-    log.write("Launching transcode_local: %s\n" % args)
-    log.flush()
+    log.info("Launching transcode_local: %s\n" % args)
 
     # Spawn the process
     proc = subprocess.Popen(args)
     proc.wait()
 
 def transcode_remote():
+    setup_logging()
+
     command = REMOTE_ARGS % {
         "ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
         "working_dir":  os.getcwd(),
@@ -122,7 +157,7 @@ def transcode_remote():
     config = get_config()
 
     if len(config["servers"]) == 0:
-        log.write("No hosts found...using local")
+        log.info("No hosts found...using local")
         return transcode_local()
 
     # TODO: Decide which host to use better.  For now, choose first one
@@ -133,8 +168,7 @@ def transcode_remote():
 
     args = ["ssh", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
 
-    log.write("Launching transcode_remote: %s\n" % args)
-    log.flush()
+    log.info("Launching transcode_remote: %s\n" % args)
 
     # Spawn the process
     proc = subprocess.Popen(args)
