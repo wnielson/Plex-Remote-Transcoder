@@ -1,7 +1,6 @@
 # Plex Remote Transcoder
 
-A wrapper around the default Plex transcoder that allows video transcoding to be
-done on remote machines.
+Plex Remote Transcoder - A distributed transcoding backend for Plex.
 
 At the present, this is more of a working proof-of-concept.  More testing and development is
 still needed, so please help by reporting bugs or with pull-requests.
