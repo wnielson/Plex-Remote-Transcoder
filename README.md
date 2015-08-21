@@ -12,9 +12,9 @@ most of which involve proxying HTTP requests between multiple
 `Plex Media Server` (`PMS`) installations.  This project takes a different, and arguably
 easier approach that simply involves running the `Plex New Transcoder` on a
 remote host.  In this setup there is only ever **one** `PMS`
-installation, but there can be any number of transcode hosts.  Since transcoding
-is typically the most processor intensive aspect of Plex, it makes sense to be
-able to distribute this workload among all available computing resources.
+installation (the `master` host), but there can be any number of transcode hosts
+(`slave` hosts).  Since transcoding is typically the most processor intensive aspect of
+`PMS`, it makes sense to be able to distribute this workload among all available computing resources.
 
 The way this works is by replacing the default `Plex New Transcoder` binary on the
 master `PMS` with a wrapper.  This wrapper allows us to intercept the transcode request
