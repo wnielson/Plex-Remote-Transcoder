@@ -30,6 +30,8 @@ else:
 
 DEFAULT_CONFIG = {
     "ipaddress": "",
+    "path_script":    None,
+    "servers_script": None,
     "servers":   {},
     "logging":   {
         "version": 1,
@@ -166,22 +168,63 @@ def transcode_local():
     proc.wait()
 
 def transcode_remote():
-    setup_logging()   
+    setup_logging()
+
+    config = get_config()
+    args   = sys.argv[1:]
+
+    # Check to see if we need to call a user-script to replace/modify the file path
+    if config.get("path_script", None):
+        idx = 0
+        # The file path comes after the "-i" command line argument
+        for i, v in enumerate(args):
+            if v == "-i":
+                idx = i+1
+                break
+
+        # Found the requested video path
+        path = args[idx]
+
+        try:
+            proc = subprocess.Popen([config.get("path_script"), path], stdout=subprocess.PIPE)
+            proc.wait()
+            new_path = proc.stdout.readline().strip()
+            if new_path:
+                log.debug("Replacing path with: %s" % new_path)
+                args[idx] = new_path
+        except Exception, e:
+            log.error("Error calling path_script: %s" % str(e))
 
     command = REMOTE_ARGS % {
         "ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
         "working_dir":  os.getcwd(),
         "command":      "prt_local",
-        "args":         ' '.join([pipes.quote(a) for a in sys.argv[1:]])
+        "args":         ' '.join([pipes.quote(a) for a in args])
     }
 
-    config = get_config()
+    servers = config["servers"]
+
+    # Look to see if we need to run an external script to get hosts
+    if config.get("servers_script", None):
+        try:
+            proc = subprocess.Popen([config["servers_script"]], stdout=subprocess.PIPE)
+            proc.wait()
+
+            servers = {}
+            for line in proc.stdout.readlines():
+                hostname, port, user = line.strip().split()
+                servers[hostname] = {
+                    "port": port,
+                    "user": user
+                }
+        except Exception, e:
+            log.error("Error retreiving host list via '%s': %s" % (config["servers_script"], str(e)))
 
     hostname, host = None, None
 
     # Let's try to load-balance
     min_load = None    
-    for hostname, host in config["servers"].items():
+    for hostname, host in servers.items():
         
         log.debug("Getting load for host '%s'" % hostname)
         load = get_system_load_remote(hostname, host["port"], host["user"])
@@ -204,12 +247,12 @@ def transcode_remote():
     
     # Select lowest-load host
     log.info("Host with minimum load is '%s'" % min_load[0])
-    hostname, host = min_load[0], config["servers"][min_load[0]]
+    hostname, host = min_load[0], servers[min_load[0]]
 
     log.info("Using transcode host '%s'" % hostname)
 
     # Remap the 127.0.0.1 reference to the proper address
-    command.replace("127.0.0.1", config["ipaddress"])
+    command = command.replace("127.0.0.1", config["ipaddress"])
 
     #
     # TODO: Remap file-path to PMS URLs
