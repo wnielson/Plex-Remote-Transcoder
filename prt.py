@@ -166,21 +166,7 @@ def transcode_local():
     proc.wait()
 
 def transcode_remote():
-    setup_logging()
-
-    #session_id = None
-    #for i, v in enumerate(sys.argv[1:]):
-    #    if v == "-progressurl":
-    #        # TODO: This is crap, should use regex
-    #        #requests.put(sys.argv[1:][i+1])
-    #        session_id = sys.argv[1:][i+1].split("transcode/session/")[-1].split("/")[0]
-    #        break
-
-    #if session_id:
-    #    xml = requests.get("http://127.0.0.1:32400/status/sessions")
-    #    #dom = ET.parse(xml)
-    #    log.debug("xml = %s" % xml.text)
-   
+    setup_logging()   
 
     command = REMOTE_ARGS % {
         "ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
@@ -191,34 +177,34 @@ def transcode_remote():
 
     config = get_config()
 
-    if len(config["servers"]) == 0:
-        log.info("No hosts found...using local")
-        return transcode_local()
-
     hostname, host = None, None
 
-    if len(config["servers"]) > 1:
-        # Let's try to load-balance
-        min_load = None
+    # Let's try to load-balance
+    min_load = None    
+    for hostname, host in config["servers"].items():
         
-        for hostname, host in config["servers"].items():
-            
-            log.debug("Getting load for host '%s'" % hostname)
-            load = get_system_load_remote(hostname, host["port"], host["user"])
+        log.debug("Getting load for host '%s'" % hostname)
+        load = get_system_load_remote(hostname, host["port"], host["user"])
 
-            log.debug("Log for '%s': %s" % (hostname, str(load)))
+        if not load:
+            # If no load is returned, then it is likely that the host
+            # is offline or unreachable
+            log.debug("Couldn't get load for host '%s'" % hostname)
+            continue
 
-            # XXX: Use more that just 1-minute load?
-            if min_load is None or min_load[1] > load[0]:
-                min_load = (hostname, load[0],)
+        log.debug("Log for '%s': %s" % (hostname, str(load)))
 
-        # Select lowest-load host
-        log.info("Host with minimum load is '%s'" % min_load[0])
-        hostname, host = min_load[0], config["servers"][min_load[0]]
+        # XXX: Use more that just 1-minute load?
+        if min_load is None or min_load[1] > load[0]:
+            min_load = (hostname, load[0],)
 
-    else:
-        # We don't have a choice--use the only host
-        hostname, host = config["servers"].items()[0]
+    if min_load is None:
+        log.info("No hosts found...using local")
+        return transcode_local()
+    
+    # Select lowest-load host
+    log.info("Host with minimum load is '%s'" % min_load[0])
+    hostname, host = min_load[0], config["servers"][min_load[0]]
 
     log.info("Using transcode host '%s'" % hostname)
 
@@ -255,10 +241,25 @@ def main():
         save_config(config)
 
         install_transcoder()
+
     elif sys.argv[1] == "add_host":
-        host = raw_input("Host: ")
-        port = raw_input("Port: ")
-        user = raw_input("User: ")
+        host = None
+        port = None
+        user = None
+
+        if len(sys.argv) >= 3:
+            host = sys.argv[2]
+        if len(sys.argv) >= 4:
+            port = sys.argv[3]
+        if len(sys.argv) >= 5:
+            user = sys.argv[4]
+
+        if host is None:
+            host = raw_input("Host: ")
+        if port is None:
+            port = raw_input("Port: ")
+        if user is None:
+            user = raw_input("User: ")
 
         print "We're going to add the following transcode host:"
         print "  Host: %s" % host
@@ -268,10 +269,17 @@ def main():
         if raw_input("Proceed: [y/n]").lower() == "y":
             config = get_config()
             config["servers"][host] = {
-                "port": port,
+                "port": port,   
                 "user": user
             }
 
             if save_config(config):
                 print "Host successfully added"
 
+    elif sys.argv[1] == "remove_host":
+        config = get_config()
+        try:
+            del config["servers"][sys.argv[2]]
+            print "Host removed"
+        except Exception, e:
+            print "Error removing host: %s" % str(e)
