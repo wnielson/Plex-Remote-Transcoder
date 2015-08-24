@@ -85,7 +85,7 @@ the path is to be modified or changed, then the new path should be written back
 to `stdout`.  A simple example in Python that simply returns the same path is
 given below.
 
-```
+```python
 !/usr/bin/env python
 import sys
 
@@ -95,6 +95,6 @@ if len(sys.argv) > 1:
 ```
 
 
-##`logging``**
+**`logging`**
 
 TODO: Document this.
