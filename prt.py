@@ -347,7 +347,7 @@ def main():
     if sys.argv[1] == "get_load":
         print " ".join([str(i) for i in get_system_load_local()])
 
-    if sys.argv[1] == "install":
+    elif sys.argv[1] == "install":
         print "Installing Plex Remote Transcoder"
         config = get_config()
         config["ipaddress"] = raw_input("IP address of this machine: ")
