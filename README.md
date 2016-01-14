@@ -101,5 +101,5 @@ TODO: Document this.
 
 ## Contributors
 
-Weston Nielson (Owner) - wnielson@github
-Andy Livingstone - liviynz@github
+* Weston Nielson (Owner) - wnielson@github
+* Andy Livingstone - liviynz@github
