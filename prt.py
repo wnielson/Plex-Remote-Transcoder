@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Version 0.2.1 - Original version - Weston Nielson <wnielson@github> - Date unknown
+# Version 0.2.1 - Weston Nielson <wnielson@github>
 #
 
 import json
