@@ -99,7 +99,7 @@ if len(sys.argv) > 1:
 
 TODO: Document this.
 
-## Contributers
+## Contributors
 
 Weston Nielson (Owner) - wnielson@github
 Andy Livingstone - liviynz@github
