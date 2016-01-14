@@ -98,3 +98,8 @@ if len(sys.argv) > 1:
 **`logging`**
 
 TODO: Document this.
+
+## Contributers
+
+Weston Nielson (Owner) - wnielson@github
+Andy Livingstone - liviynz@github

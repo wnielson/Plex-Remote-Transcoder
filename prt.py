@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-# Version 0.2.0 - Original version - Weston Nielson <wnielson@github> - Date unknown
-# 0.2.1- Added overwrite function for upgraded plex after install. Fixed chmod from 0777 to 0755 as that's a much safer
-#        approach to security. Fixed up some python format issues like double space before new function definition.
-#        Split out version to it's own function & fleshed out usage function. Added import of filecmp for file compare.
-#        Also some other minor warnings from analysis - Andy <liviynz@github> - 06/01/2016
+# Version 0.2.1 - Original version - Weston Nielson <wnielson@github> - Date unknown
 #
+
 import json
 import logging
 import logging.config
@@ -17,7 +14,6 @@ import shutil
 import subprocess
 import sys
 import time
-# 0.2.1 - Added filecmp for comparing 2 files
 import filecmp
 #import requests
 
@@ -163,13 +159,12 @@ def install_transcoder():
     if rename_transcoder():
         try:
             shutil.copyfile(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME))
-            # 0.2.1 - Changed the chmod to 0775 rather than 0777 which is bad security practice
             os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0755)
         except Exception, e:
             print "Error installing new transcoder: %s" % str(e)
 
 
-# 0.2.1 - overwrite_transcoder_after_upgrade function - LiviyNZ
+# Overwrite_transcoder_after_upgrade function
 def overwrite_transcoder_after_upgrade():
     """
     Moves the upgraded transcoder "Plex New Transcoder" to the new name given
@@ -320,7 +315,7 @@ def version():
     print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
 
 
-# 0.2.1 - Fleshed out usage function
+# Usage function
 def usage():
     __runningfile__ = os.path.basename(__file__)
     print "Usage for Plex Remote Transcoder (prt)"
@@ -335,14 +330,14 @@ def usage():
 
 
 def main():
-    # 0.2.1 - specific usage options
+    # Specific usage options
     if any( [len(sys.argv) < 2 , sys.argv[1] == "usage", sys.argv[1] == "help", sys.argv[1] == "-h",
              sys.argv[1] == "?",] ):
         usage()
         sys.exit(-1)
 
-# TODO: get_load_all to show load currently across all nodes - 0.2.1
-# TODO: show_hosts_status to show current status across all nodes - 0.2.1
+# TODO: get_load_all to show load currently across all nodes
+# TODO: show_hosts_status to show current status across all nodes
 
     if sys.argv[1] == "get_load":
         print " ".join([str(i) for i in get_system_load_local()])
@@ -397,19 +392,19 @@ def main():
         except Exception, e:
             print "Error removing host: %s" % str(e)
 
-    # 0.2.1 - added version option rathern than just for no options
+    # Added version option rather than just for no options
     elif any( [sys.argv[1] == "version", sys.argv[1] == "v", sys.argv[1] == "V"] ):
         version()
         sys.exit(0)
 
-    # 0.2.1 - added overwrite option (for after plex package update/upgrade)
+    # Overwrite option (for after plex package update/upgrade)
     elif sys.argv[1] == "overwrite":
             overwrite_transcoder_after_upgrade()
             print "Transcoder overwritten successfully"
 
     # Todo: list_hosts option to show current hosts to aid add/remove_host options - Liviynz
 
-    # 0.2.1 - Anything not listed shows usage
+    # Anything not listed shows usage
     else:
         usage()
         sys.exit(-1)
