@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Version 0.2.1 - Weston Nielson <wnielson@github>
+#
+
 import json
 import logging
 import logging.config
@@ -11,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
+import filecmp
 #import requests
 
 from distutils.spawn import find_executable
@@ -73,7 +77,8 @@ REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.2.0"
+__version__ = "0.2.1"
+
 
 def get_config():
     path = os.path.expanduser("~/.prt.conf")
@@ -81,6 +86,7 @@ def get_config():
         return json.load(open(path))
     except Exception, e:
         return DEFAULT_CONFIG.copy()
+
 
 def save_config(d):
     path = os.path.expanduser("~/.prt.conf")
@@ -91,6 +97,7 @@ def save_config(d):
         print "Error loading config: %s" % str(e)
     return False
 
+
 def get_system_load_local():
     """
     Returns a list of float representing the percentage load of this machine.
@@ -98,6 +105,7 @@ def get_system_load_local():
     nproc = multiprocessing.cpu_count()
     load  = os.getloadavg()
     return [l/nproc * 100 for l in load]
+
 
 def get_system_load_remote(host, port, user):
     """
@@ -107,15 +115,18 @@ def get_system_load_remote(host, port, user):
     proc.wait()
     return [float(i) for i in proc.stdout.read().strip().split()]
 
+
 def setup_logging():
     config = get_config()
     logging.config.dictConfig(config["logging"])
+
 
 def get_transcoder_path(name=NEW_TRANSCODER_NAME):
     """
     Returns the full path to ``name`` located in ``TRANSCODER_DIR``.
     """
     return os.path.join(TRANSCODER_DIR, name)
+
 
 def rename_transcoder():
     """
@@ -126,9 +137,9 @@ def rename_transcoder():
     new_path = get_transcoder_path(NEW_TRANSCODER_NAME)
 
     if os.path.exists(new_path):
-        print "Transcoder appears to have been renamed previously...not renaming"
+        print "Transcoder appears to have been renamed previously...not renaming (try overwrite option)"
         return False
-    
+
     try:
         os.rename(old_path, new_path)
     except Exception, e:
@@ -136,6 +147,7 @@ def rename_transcoder():
         return False
 
     return True
+
 
 def install_transcoder():
     prt_remote = find_executable("prt_remote")
@@ -147,9 +159,40 @@ def install_transcoder():
     if rename_transcoder():
         try:
             shutil.copyfile(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME))
-            os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0777)
+            os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0755)
         except Exception, e:
             print "Error installing new transcoder: %s" % str(e)
+
+
+# Overwrite_transcoder_after_upgrade function
+def overwrite_transcoder_after_upgrade():
+    """
+    Moves the upgraded transcoder "Plex New Transcoder" to the new name given
+    by ``TRANSCODER_NAME`` if the plex package has overwritten the old one.
+    """
+    old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
+    new_path = get_transcoder_path(NEW_TRANSCODER_NAME)
+
+    prt_remote = find_executable("prt_remote")
+    if not prt_remote:
+        print "Couldn't find `prt_remote` executable"
+        sys.exit(2)
+    elif os.path.exists(new_path):
+           print "Transcoder appears to have been renamed previously...checking if it's been overwritten"
+           if not filecmp.cmp(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME), shallow=1):
+               try:
+                   shutil.copyfile(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME))
+                   os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0755)
+               except Exception, e:
+                   print "Error installing new transcoder: %s" % str(e)
+                   sys.exit(2)
+           else:
+               print "Transcoder hasn't been overwritten by upgrade, nothing to do"
+               sys.exit(1)
+    else:
+         print "Transcoder hasn't been previously installed, please use install option"
+         sys.exit(1)
+
 
 def transcode_local():
     setup_logging()
@@ -166,6 +209,7 @@ def transcode_local():
     # Spawn the process
     proc = subprocess.Popen(args)
     proc.wait()
+
 
 def transcode_remote():
     setup_logging()
@@ -223,9 +267,9 @@ def transcode_remote():
     hostname, host = None, None
 
     # Let's try to load-balance
-    min_load = None    
+    min_load = None
     for hostname, host in servers.items():
-        
+
         log.debug("Getting load for host '%s'" % hostname)
         load = get_system_load_remote(hostname, host["port"], host["user"])
 
@@ -244,7 +288,7 @@ def transcode_remote():
     if min_load is None:
         log.info("No hosts found...using local")
         return transcode_local()
-    
+
     # Select lowest-load host
     log.info("Host with minimum load is '%s'" % min_load[0])
     hostname, host = min_load[0], servers[min_load[0]]
@@ -266,18 +310,39 @@ def transcode_remote():
     proc = subprocess.Popen(args)
     proc.wait()
 
+
+def version():
+    print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
+
+
+# Usage function
 def usage():
-    return
+    __runningfile__ = os.path.basename(__file__)
+    print "Usage for Plex Remote Transcoder (prt)"
+    print "%s [options]\n" % (__runningfile__)
+    print "Options:\n" \
+    "usage, help, -h, ?\tshows usage page\n" \
+    "get_load\t\tshows the load of the system\n" \
+    "install\t\t\tinstalls PRT for the first time and then sets up configuration\n" \
+    "overwrite\t\tfixes PRT after PMS has had a version update breaking PRT\n" \
+    "add_host\t\tadds an extra host to the list of slaves PRT is to use\n" \
+    "remove_host\t\tremoves a host from the list of slaces PRT is to use\n"
+
 
 def main():
-    if len(sys.argv) < 2:
-        print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
-        return usage()
+    # Specific usage options
+    if any( [len(sys.argv) < 2 , sys.argv[1] == "usage", sys.argv[1] == "help", sys.argv[1] == "-h",
+             sys.argv[1] == "?",] ):
+        usage()
+        sys.exit(-1)
+
+# TODO: get_load_all to show load currently across all nodes
+# TODO: show_hosts_status to show current status across all nodes
 
     if sys.argv[1] == "get_load":
         print " ".join([str(i) for i in get_system_load_local()])
 
-    if sys.argv[1] == "install":
+    elif sys.argv[1] == "install":
         print "Installing Plex Remote Transcoder"
         config = get_config()
         config["ipaddress"] = raw_input("IP address of this machine: ")
@@ -312,7 +377,7 @@ def main():
         if raw_input("Proceed: [y/n]").lower() == "y":
             config = get_config()
             config["servers"][host] = {
-                "port": port,   
+                "port": port,
                 "user": user
             }
 
@@ -326,3 +391,21 @@ def main():
             print "Host removed"
         except Exception, e:
             print "Error removing host: %s" % str(e)
+
+    # Added version option rather than just for no options
+    elif any( [sys.argv[1] == "version", sys.argv[1] == "v", sys.argv[1] == "V"] ):
+        version()
+        sys.exit(0)
+
+    # Overwrite option (for after plex package update/upgrade)
+    elif sys.argv[1] == "overwrite":
+            overwrite_transcoder_after_upgrade()
+            print "Transcoder overwritten successfully"
+
+    # Todo: list_hosts option to show current hosts to aid add/remove_host options - Liviynz
+
+    # Anything not listed shows usage
+    else:
+        usage()
+        sys.exit(-1)
+
