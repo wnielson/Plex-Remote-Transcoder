@@ -372,7 +372,9 @@ def get_transcode_session_details(args):
         for line in fh.xreadlines():
             if line.find("/video/:/transcode/") > -1:
                 url = urlparse.urlparse(line.split("/video/:/transcode/")[-1].split(" ")[0])
-                session_details.update(dict(cgi.parse_qsl(url.query)))
+                details = dict(cgi.parse_qsl(url.query))
+                if details.get("session") == session_id:
+                    session_details.update(details)
         fh.close()
     
     return session_details
