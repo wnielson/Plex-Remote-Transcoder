@@ -13,6 +13,10 @@ guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Inst
 Addtionally, for proposed features and some current limitations, check out
 [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
 
+## Contributing
+
+Bug fixes/reports and feature requests are welcome!  Either submit a pull request or create a new issue.  There is also a [discussion board](https://gitter.im/wnielson/Plex-Remote-Transcoder).
+
 ## How Does it Work?
 
 There have been quite a few projects attempting to load balance a Plex server,
