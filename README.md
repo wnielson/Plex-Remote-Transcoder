@@ -1,5 +1,7 @@
 # Plex Remote Transcoder
 
+[![Join the chat at https://gitter.im/wnielson/Plex-Remote-Transcoder](https://badges.gitter.im/wnielson/Plex-Remote-Transcoder.svg)](https://gitter.im/wnielson/Plex-Remote-Transcoder?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A distributed transcoding backend for Plex.
 
 At the present, this is really just a working proof-of-concept.  More testing
