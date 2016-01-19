@@ -2,6 +2,8 @@
 # Version 0.2.1 - Weston Nielson <wnielson@github>
 #
 
+import cgi
+import filecmp
 import json
 import logging
 import logging.config
@@ -14,8 +16,7 @@ import shutil
 import subprocess
 import sys
 import time
-import filecmp
-#import requests
+import urlparse
 
 from distutils.spawn import find_executable
 
@@ -25,10 +26,12 @@ if sys.platform == "darwin":
     # OS X
     TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/Resources/"
     LD_LIBRARY_PATH = "/Applications/Plex Media Server.app/Contents/Frameworks/"
+    LOG_PATH        = os.path.expanduser("~/Library/Logs/Plex Media Server.log")
 elif sys.platform.startswith('linux'):
     # Linux
     TRANSCODER_DIR  = "/usr/lib/plexmediaserver/Resources/"
     LD_LIBRARY_PATH = "/usr/lib/plexmediaserver"
+    LOG_PATH        = "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Logs/Plex Media Server.log"
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -77,7 +80,7 @@ REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 
 def get_config():
@@ -204,6 +207,12 @@ def transcode_local():
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
 
+    try:
+        session = get_transcode_session_details(args)
+        log.info("Session details: %s" % str(session))
+    except Exception, e:
+        log.error("Error getting session details: %s" % str(e))
+
     log.info("Launching transcode_local: %s\n" % args)
 
     # Spawn the process
@@ -309,6 +318,64 @@ def transcode_remote():
     # Spawn the process
     proc = subprocess.Popen(args)
     proc.wait()
+
+
+def get_transcode_session_details(args):
+    """
+    Extracts the session details from the Plex log file.  It does this by
+    looking for all lines that contain a call to "/video/:/transcode/" and
+    extracting the associated session data.  If session data was successfully
+    found, this returns a `dict` similar to the following:
+
+        {'Accept-Language':          'en',
+         'X-Plex-Client-Identifier': '12345678',
+         'X-Plex-Device':            'OSX',
+         'X-Plex-Device-Name':       'Plex Web (Safari)',
+         'X-Plex-Platform':          'Safari',
+         'X-Plex-Platform-Version':  '9.0',
+         'X-Plex-Product':           'Plex Web',
+         'X-Plex-Username':          'wnielson',
+         'X-Plex-Version':           '2.4.23',
+         'audioBoost':               '100',
+         'directPlay':               '0',
+         'directStream':             '1',
+         'fastSeek':                 '1',
+         'mediaIndex':               '0',
+         'offset':                   '0',
+         'partIndex':                '0',
+         'path':                     'http://127.0.0.1:32400/library/metadata/8',
+         'protocol':                 'hls',
+         'session':                  '6sfg5w1xv5c',
+         'subtitleSize':             '100',
+         'subtitles':                'burn'}
+    """
+    session_details = {}
+    
+    # Try to find the session ID in the args
+    session_id = None
+    for arg in args:
+        if arg.find("video/:/transcode") > -1:
+            session_id = arg.split("transcode/session/")[-1].split("/")[0]
+            break
+
+    # Open the plex log file and look for the session details
+    fh = None
+    if session_id:
+        try:
+            fh = open(LOG_PATH, "r")
+        except:
+            log.info("Couldn't open Plex log file: %s" % LOG_PATH)
+
+    if fh:
+        # Seek back from the end of the log file
+        fh.seek(-8192, 2)
+        for line in fh.xreadlines():
+            if line.find("/video/:/transcode/") > -1:
+                url = urlparse.urlparse(line.split("/video/:/transcode/")[-1].split(" ")[0])
+                session_details.update(dict(cgi.parse_qsl(url.query)))
+        fh.close()
+    
+    return session_details
 
 
 def version():
