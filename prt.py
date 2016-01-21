@@ -317,27 +317,30 @@ def version():
 
 # Usage function
 def usage():
-    __runningfile__ = os.path.basename(__file__)
-    print "Usage for Plex Remote Transcoder (prt)"
-    print "%s [options]\n" % (__runningfile__)
-    print "Options:\n" \
-    "usage, help, -h, ?\tshows usage page\n" \
-    "get_load\t\tshows the load of the system\n" \
-    "install\t\t\tinstalls PRT for the first time and then sets up configuration\n" \
-    "overwrite\t\tfixes PRT after PMS has had a version update breaking PRT\n" \
-    "add_host\t\tadds an extra host to the list of slaves PRT is to use\n" \
-    "remove_host\t\tremoves a host from the list of slaces PRT is to use\n"
+    version()
+    print "Plex Remote Transcode comes with ABSOLUTELY NO WARRANTY.\n\n"\
+          "This is free software, and you are welcome to redistribute it and/or modify\n"\
+          "it under the terms of the MIT License.\n\n"
+    print "Usage:\n"
+    print "  %s [options]\n" % os.path.basename(sys.argv[0])
+    print "Options:\n\n" \
+    "  usage, help, -h, ?    Show usage page\n" \
+    "  get_load              Show the load of the system\n" \
+    "  install               Install PRT for the first time and then sets up configuration\n" \
+    "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" \
+    "  add_host              Add an extra host to the list of slaves PRT is to use\n" \
+    "  remove_host           Removes a host from the list of slaves PRT is to use\n"
 
 
 def main():
     # Specific usage options
-    if any( [len(sys.argv) < 2 , sys.argv[1] == "usage", sys.argv[1] == "help", sys.argv[1] == "-h",
-             sys.argv[1] == "?",] ):
+    if len(sys.argv) < 2 or any((sys.argv[1] == "usage", sys.argv[1] == "help", sys.argv[1] == "-h",
+            sys.argv[1] == "?",)):
         usage()
         sys.exit(-1)
 
-# TODO: get_load_all to show load currently across all nodes
-# TODO: show_hosts_status to show current status across all nodes
+    # TODO: get_load_all to show load currently across all nodes
+    # TODO: show_hosts_status to show current status across all nodes
 
     if sys.argv[1] == "get_load":
         print " ".join([str(i) for i in get_system_load_local()])
