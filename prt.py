@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Version 0.2.1 - Weston Nielson <wnielson@github>
 #
-
+import getpass
 import json
 import logging
 import logging.config
@@ -15,7 +15,6 @@ import subprocess
 import sys
 import time
 import filecmp
-#import requests
 
 from distutils.spawn import find_executable
 
@@ -77,7 +76,7 @@ REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 
 def get_config():
@@ -323,13 +322,15 @@ def usage():
           "it under the terms of the MIT License.\n\n"
     print "Usage:\n"
     print "  %s [options]\n" % os.path.basename(sys.argv[0])
-    print "Options:\n\n" \
-    "  usage, help, -h, ?    Show usage page\n" \
-    "  get_load              Show the load of the system\n" \
-    "  install               Install PRT for the first time and then sets up configuration\n" \
-    "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" \
-    "  add_host              Add an extra host to the list of slaves PRT is to use\n" \
-    "  remove_host           Removes a host from the list of slaves PRT is to use\n"
+    print (
+        "Options:\n\n" 
+        "  usage, help, -h, ?    Show usage page\n" 
+        "  get_load              Show the load of the system\n" 
+        "  get_cluster_load      Show the load of all systems in the cluster\n" 
+        "  install               Install PRT for the first time and then sets up configuration\n" 
+        "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" 
+        "  add_host              Add an extra host to the list of slaves PRT is to use\n" 
+        "  remove_host           Removes a host from the list of slaves PRT is to use\n")
 
 
 def main():
@@ -339,11 +340,23 @@ def main():
         usage()
         sys.exit(-1)
 
-    # TODO: get_load_all to show load currently across all nodes
+    #user = getpass.getuser()
+    #if user != 'plex':
+    #    print ("Warning: You are not running as the Plex user")
+    #    return
+
     # TODO: show_hosts_status to show current status across all nodes
 
     if sys.argv[1] == "get_load":
         print " ".join([str(i) for i in get_system_load_local()])
+
+    elif sys.argv[1] == "get_cluster_load":
+        print "Cluster Load"
+        config = get_config()
+        servers = config["servers"]
+        for address, server in servers.items():
+            load = ["%0.2f%%" % l for l in get_system_load_remote(address, server["port"], server["user"])]
+            print "  %15s: %s" % (address, ", ".join(load))
 
     elif sys.argv[1] == "install":
         print "Installing Plex Remote Transcoder"
