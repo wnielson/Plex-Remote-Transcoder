@@ -404,6 +404,7 @@ def main():
         config = get_config()
         try:
             del config["servers"][sys.argv[2]]
+            save_config(config)
             print "Host removed"
         except Exception, e:
             print "Error removing host: %s" % str(e)
