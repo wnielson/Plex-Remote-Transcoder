@@ -114,3 +114,12 @@ TODO: Document this.
 
 * Weston Nielson (Owner) - wnielson@github
 * Andy Livingstone - liviynz@github
+
+
+## Donations
+
+Some people have ask about how to dontate, so if you want to buy me a beer here are some links.  Cheers!
+
+[![Donate at https://patreon.com/wnielson](https://img.shields.io/badge/patreon-donate-yellow.svg)](https://patreon.com/wnielson)
+
+[![Donate at https://www.paypal.me/wnielson](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.me/wnielson)
