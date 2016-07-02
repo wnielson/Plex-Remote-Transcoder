@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Version 0.2.1 - Weston Nielson <wnielson@github>
+# Weston Nielson <wnielson@github>
 #
 import getpass
 import json
@@ -22,12 +22,18 @@ log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
+    # TODO: Update this to use new ENV_VARS config
     TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/Resources/"
     LD_LIBRARY_PATH = "/Applications/Plex Media Server.app/Contents/Frameworks/"
 elif sys.platform.startswith('linux'):
     # Linux
     TRANSCODER_DIR  = "/usr/lib/plexmediaserver/Resources/"
-    LD_LIBRARY_PATH = "/usr/lib/plexmediaserver"
+    ENV_VARS = {
+        'LD_LIBRARY_PATH':      "/usr/lib/plexmediaserver:$LD_LIBRARY_PATH",
+        'FFMPEG_EXTERNAL_LIBS': "/var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Codecs/2c361e4-1071-linux-ubuntu-x86_64/",
+        'XDG_CACHE_HOME':       "/var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Cache/",
+        'XDG_DATA_HOME':        "/usr/lib/plexmediaserver/Resources/"
+    }
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -49,7 +55,7 @@ DEFAULT_CONFIG = {
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "INFO",
                 "formatter": "simple",
-                "filename": "prt.log",
+                "filename": "/tmp/prt.log",
                 "maxBytes": 10485760,
                 "backupCount": 20,
                 "encoding": "utf8"
@@ -66,17 +72,17 @@ DEFAULT_CONFIG = {
 }
 
 # This is the name we give to the original transcoder, which must be renamed
-NEW_TRANSCODER_NAME	 	 = "plex_transcoder"
-ORIGINAL_TRANSCODER_NAME = "Plex New Transcoder"
+NEW_TRANSCODER_NAME      = "plex_transcoder"
+ORIGINAL_TRANSCODER_NAME = "Plex Transcoder"
 
-REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
+REMOTE_ARGS = ("%(env)s;"
                "cd %(working_dir)s;"
                "%(command)s %(args)s")
 
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 
 def get_config():
@@ -129,7 +135,7 @@ def get_transcoder_path(name=NEW_TRANSCODER_NAME):
 
 def rename_transcoder():
     """
-    Moves the original transcoder "Plex New Transcoder" to the new name given
+    Moves the original transcoder "Plex Transcoder" to the new name given
     by ``TRANSCODER_NAME``.
     """
     old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
@@ -166,7 +172,7 @@ def install_transcoder():
 # Overwrite_transcoder_after_upgrade function
 def overwrite_transcoder_after_upgrade():
     """
-    Moves the upgraded transcoder "Plex New Transcoder" to the new name given
+    Moves the upgraded transcoder "Plex Transcoder" to the new name given
     by ``TRANSCODER_NAME`` if the plex package has overwritten the old one.
     """
     old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
@@ -198,7 +204,9 @@ def transcode_local():
 
     # The transcoder needs to have the propery LD_LIBRARY_PATH
     # set, otherwise it cannot run
-    os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
+    #os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
+    for k, v in ENV_VARS.items():
+        os.environ[k] = v
 
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
@@ -238,12 +246,16 @@ def transcode_remote():
         except Exception, e:
             log.error("Error calling path_script: %s" % str(e))
 
+    env = ";".join("export %s=%s" % (k,v) for k,v in ENV_VARS.items())
+    print env
     command = REMOTE_ARGS % {
-        "ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
+        "env":          env,
+        #"ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
         "working_dir":  os.getcwd(),
         "command":      "prt_local",
         "args":         ' '.join([pipes.quote(a) for a in args])
     }
+    print command
 
     servers = config["servers"]
 
