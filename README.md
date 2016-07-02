@@ -15,6 +15,11 @@ guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Inst
 Addtionally, for proposed features and some current limitations, check out
 [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
 
+
+**IMPORTANT**
+
+Plex recently released version 1.0 of the `Plex Media Server` (`PMS`) and in doing so `PRT` broke.  Support for this new version of `PMS` is being developed in the `PMS-v1` branch.
+
 ## Contributing
 
 Bug fixes/reports and feature requests are welcome!  Either submit a pull request or create a new issue.  There is also a [discussion board](https://gitter.im/wnielson/Plex-Remote-Transcoder).
