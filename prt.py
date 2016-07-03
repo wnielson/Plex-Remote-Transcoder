@@ -22,18 +22,10 @@ log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
-    # TODO: Update this to use new ENV_VARS config
     TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/Resources/"
-    LD_LIBRARY_PATH = "/Applications/Plex Media Server.app/Contents/Frameworks/"
 elif sys.platform.startswith('linux'):
     # Linux
     TRANSCODER_DIR  = "/usr/lib/plexmediaserver/Resources/"
-    ENV_VARS = {
-        'LD_LIBRARY_PATH':      "/usr/lib/plexmediaserver:$LD_LIBRARY_PATH",
-        'FFMPEG_EXTERNAL_LIBS': "/var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Codecs/2c361e4-1071-linux-ubuntu-x86_64/",
-        'XDG_CACHE_HOME':       "/var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Cache/",
-        'XDG_DATA_HOME':        "/usr/lib/plexmediaserver/Resources/"
-    }
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -82,7 +74,7 @@ REMOTE_ARGS = ("%(env)s;"
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 def get_config():
@@ -198,6 +190,11 @@ def overwrite_transcoder_after_upgrade():
          print "Transcoder hasn't been previously installed, please use install option"
          sys.exit(1)
 
+def build_env(host=None):
+    # TODO: This really should be done in a way that is specific to the target
+    #       in the case that the target is a different architecture than the host
+    return ";".join("export %s=%s" % (k, v) for k,v in os.environ.items())
+
 
 def transcode_local():
     setup_logging()
@@ -205,8 +202,8 @@ def transcode_local():
     # The transcoder needs to have the propery LD_LIBRARY_PATH
     # set, otherwise it cannot run
     #os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
-    for k, v in ENV_VARS.items():
-        os.environ[k] = v
+    #for k, v in ENV_VARS.items():
+    #    os.environ[k] = v
 
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
@@ -246,16 +243,12 @@ def transcode_remote():
         except Exception, e:
             log.error("Error calling path_script: %s" % str(e))
 
-    env = ";".join("export %s=%s" % (k,v) for k,v in ENV_VARS.items())
-    print env
     command = REMOTE_ARGS % {
-        "env":          env,
-        #"ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
+        "env":          build_env(),
         "working_dir":  os.getcwd(),
         "command":      "prt_local",
         "args":         ' '.join([pipes.quote(a) for a in args])
     }
-    print command
 
     servers = config["servers"]
 
