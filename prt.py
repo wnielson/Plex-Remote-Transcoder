@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-# Version 0.2.1 - Weston Nielson <wnielson@github>
+# Weston Nielson <wnielson@github>
 #
+
+import filecmp
 import getpass
 import json
 import logging
@@ -14,20 +16,29 @@ import shutil
 import subprocess
 import sys
 import time
-import filecmp
+import urllib
+import uuid
 
 from distutils.spawn import find_executable
+
+try:
+    from xml.etree import cElementTree as ET
+except:
+    from xml.etree import ElementTree as ET
+
+try:
+    import psutil
+except:
+    psutil = None
 
 log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
     TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/Resources/"
-    LD_LIBRARY_PATH = "/Applications/Plex Media Server.app/Contents/Frameworks/"
 elif sys.platform.startswith('linux'):
     # Linux
     TRANSCODER_DIR  = "/usr/lib/plexmediaserver/Resources/"
-    LD_LIBRARY_PATH = "/usr/lib/plexmediaserver"
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -49,7 +60,7 @@ DEFAULT_CONFIG = {
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "INFO",
                 "formatter": "simple",
-                "filename": "prt.log",
+                "filename": "/tmp/prt.log",
                 "maxBytes": 10485760,
                 "backupCount": 20,
                 "encoding": "utf8"
@@ -66,17 +77,21 @@ DEFAULT_CONFIG = {
 }
 
 # This is the name we give to the original transcoder, which must be renamed
-NEW_TRANSCODER_NAME	 	 = "plex_transcoder"
-ORIGINAL_TRANSCODER_NAME = "Plex New Transcoder"
+NEW_TRANSCODER_NAME      = "plex_transcoder"
+ORIGINAL_TRANSCODER_NAME = "Plex Transcoder"
 
-REMOTE_ARGS = ("export LD_LIBRARY_PATH=%(ld_path)s;"
+REMOTE_ARGS = ("%(env)s;"
                "cd %(working_dir)s;"
                "%(command)s %(args)s")
 
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
+PRT_ID_RE   = re.compile(r'PRT_ID=([0-9a-f]{32})', re.I)
+SESSION_RE  = re.compile(r'/session/([^/]*)/')
+SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
+
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.2.2"
+__version__ = "0.3.2"
 
 
 def get_config():
@@ -129,7 +144,7 @@ def get_transcoder_path(name=NEW_TRANSCODER_NAME):
 
 def rename_transcoder():
     """
-    Moves the original transcoder "Plex New Transcoder" to the new name given
+    Moves the original transcoder "Plex Transcoder" to the new name given
     by ``TRANSCODER_NAME``.
     """
     old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
@@ -166,7 +181,7 @@ def install_transcoder():
 # Overwrite_transcoder_after_upgrade function
 def overwrite_transcoder_after_upgrade():
     """
-    Moves the upgraded transcoder "Plex New Transcoder" to the new name given
+    Moves the upgraded transcoder "Plex Transcoder" to the new name given
     by ``TRANSCODER_NAME`` if the plex package has overwritten the old one.
     """
     old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
@@ -192,13 +207,22 @@ def overwrite_transcoder_after_upgrade():
          print "Transcoder hasn't been previously installed, please use install option"
          sys.exit(1)
 
+def build_env(host=None):
+    # TODO: This really should be done in a way that is specific to the target
+    #       in the case that the target is a different architecture than the host
+    envs = ["export %s=%s" % (k, v) for k,v in os.environ.items()]
+    envs.append("export PRT_ID=%s" % uuid.uuid1().hex)
+    return ";".join(envs)
+
 
 def transcode_local():
     setup_logging()
 
     # The transcoder needs to have the propery LD_LIBRARY_PATH
     # set, otherwise it cannot run
-    os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
+    #os.environ["LD_LIBRARY_PATH"] = "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH
+    #for k, v in ENV_VARS.items():
+    #    os.environ[k] = v
 
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
@@ -239,7 +263,7 @@ def transcode_remote():
             log.error("Error calling path_script: %s" % str(e))
 
     command = REMOTE_ARGS % {
-        "ld_path":      "%s:$LD_LIBRARY_PATH" % LD_LIBRARY_PATH,
+        "env":          build_env(),
         "working_dir":  os.getcwd(),
         "command":      "prt_local",
         "args":         ' '.join([pipes.quote(a) for a in args])
@@ -309,6 +333,82 @@ def transcode_remote():
     proc = subprocess.Popen(args)
     proc.wait()
 
+    log.info("Transcode stopped on host '%s'" % hostname)
+
+
+def re_get(regex, string, group=0, default=None):
+    match = regex.search(string)
+    if match:
+        try:
+            return match.groups()[group]
+        except:
+            if group == "all":
+                return match.groups()
+    return default
+
+def et_get(node, attrib, default=None):
+    if node is not None:
+        return node.attrib.get(attrib, default)
+    return default
+
+
+def get_plex_sessions():
+    res = urllib.urlopen('http://localhost:32400/status/sessions')
+    dom = ET.parse(res)
+    sessions = {}
+    for node in dom.findall('.//Video'):
+        session_id = et_get(node.find('.//TranscodeSession'), 'key')
+        if session_id:
+            sessions[session_id] = {
+                'file': et_get(node.find('.//Media/Part'), 'file')
+        }
+    return sessions
+
+def get_sessions():
+    sessions = {}
+
+    plex_sessions = get_plex_sessions()
+
+    for proc in psutil.process_iter():
+        try:
+            pinfo = proc.as_dict(attrs=['pid', 'name', 'username', 'cmdline'])
+        except psutil.NoSuchProcess:
+            pass
+        else:
+            # Check the parent to make sure it is the "Plex Transcoder"
+            if pinfo['name'] == 'ssh' and 'plex' in proc.parent.name.lower():
+                cmdline = ' '.join(pinfo['cmdline'])
+                m = PRT_ID_RE.search(cmdline)
+                if m:
+                    session_id = re_get(SESSION_RE, cmdline)
+                    data = {
+                        'proc': proc,
+                        'plex': plex_sessions.get(session_id, {}),
+                        'host': {}
+                    }
+
+                    host = re_get(SSH_HOST_RE, cmdline, 'all')
+                    if host:
+                        data['host'] = {
+                            'user':    host[0],
+                            'address': host[1]
+                        }
+
+                    sessions[m.groups()[0]] = data
+    return sessions
+
+
+def sessions():
+    if psutil is None:
+        print "Missing required library 'psutil'.  Try 'pip install psutil'."
+        return
+
+    sessions = get_sessions()
+    for i, (session_id, session) in enumerate(sessions.items()):
+        print "Session %s/%s" % (i+1, len(sessions))
+        print "  Host: %s" % session.get('host', {}).get('address')
+        print "  File: %s" % session.get('plex', {}).get('file')
+
 
 def version():
     print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
@@ -330,7 +430,8 @@ def usage():
         "  install               Install PRT for the first time and then sets up configuration\n" 
         "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" 
         "  add_host              Add an extra host to the list of slaves PRT is to use\n" 
-        "  remove_host           Removes a host from the list of slaves PRT is to use\n")
+        "  remove_host           Removes a host from the list of slaves PRT is to use\n"
+        "  sessions              Display current sessions\n")
 
 
 def main():
@@ -418,6 +519,9 @@ def main():
     elif sys.argv[1] == "overwrite":
             overwrite_transcoder_after_upgrade()
             print "Transcoder overwritten successfully"
+
+    elif sys.argv[1] == "sessions":
+        sessions()
 
     # Todo: list_hosts option to show current hosts to aid add/remove_host options - Liviynz
 
