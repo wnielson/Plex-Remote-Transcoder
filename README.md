@@ -4,9 +4,7 @@
 
 A distributed transcoding backend for Plex.
 
-At the present, this is really just a working proof-of-concept.  More testing
-and development is
-still needed, so please help by reporting bugs or with pull-requests.
+Please help by reporting bugs or with pull-requests.
 
 For those interested in testing this out quickly, I've put together a step by
 step guide for getting this working on two Ubuntu machines.  You can find the
@@ -15,10 +13,9 @@ guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Inst
 Addtionally, for proposed features and some current limitations, check out
 [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
 
+## Releases
 
-**IMPORTANT**
-
-Plex recently released version 1.0 of the `Plex Media Server` (`PMS`) and in doing so `PRT` broke.  Support for this new version of `PMS` is being developed in the `PMS-v1` branch.
+For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).  For the newest version of Plex Media Server, use the main branch or the newest release.
 
 ## Contributing
 
