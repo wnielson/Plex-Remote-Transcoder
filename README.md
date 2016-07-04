@@ -15,7 +15,7 @@ Addtionally, for proposed features and some current limitations, check out
 
 ## Releases
 
-For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).  For the newest version of Plex Media Server, use the main branch or the newest release.
+For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).  For the newest version of Plex Media Server, use the main branch or the [newest release](https://github.com/wnielson/Plex-Remote-Transcoder/releases).
 
 ## Contributing
 
