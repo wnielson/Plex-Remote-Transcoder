@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # Weston Nielson <wnielson@github>
 #
+
+import filecmp
 import getpass
 import json
 import logging
@@ -14,9 +16,20 @@ import shutil
 import subprocess
 import sys
 import time
-import filecmp
+import urllib
+import uuid
 
 from distutils.spawn import find_executable
+
+try:
+    from xml.etree import cElementTree as ET
+except:
+    from xml.etree import ElementTree as ET
+
+try:
+    import psutil
+except:
+    psutil = None
 
 log = logging.getLogger("prt")
 
@@ -73,8 +86,12 @@ REMOTE_ARGS = ("%(env)s;"
 
 LOAD_AVG_RE = re.compile(r"load averages: ([\d\.]+) ([\d\.]+) ([\d\.]+)")
 
+PRT_ID_RE   = re.compile(r'PRT_ID=([0-9a-f]{32})', re.I)
+SESSION_RE  = re.compile(r'/session/([^/]*)/')
+SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
+
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 
 def get_config():
@@ -193,7 +210,9 @@ def overwrite_transcoder_after_upgrade():
 def build_env(host=None):
     # TODO: This really should be done in a way that is specific to the target
     #       in the case that the target is a different architecture than the host
-    return ";".join("export %s=%s" % (k, v) for k,v in os.environ.items())
+    envs = ["export %s=%s" % (k, v) for k,v in os.environ.items()]
+    envs.append("export PRT_ID=%s" % uuid.uuid1().hex)
+    return ";".join(envs)
 
 
 def transcode_local():
@@ -314,6 +333,82 @@ def transcode_remote():
     proc = subprocess.Popen(args)
     proc.wait()
 
+    log.info("Transcode stopped on host '%s'" % hostname)
+
+
+def re_get(regex, string, group=0, default=None):
+    match = regex.search(string)
+    if match:
+        try:
+            return match.groups()[group]
+        except:
+            if group == "all":
+                return match.groups()
+    return default
+
+def et_get(node, attrib, default=None):
+    if node is not None:
+        return node.attrib.get(attrib, default)
+    return default
+
+
+def get_plex_sessions():
+    res = urllib.urlopen('http://localhost:32400/status/sessions')
+    dom = ET.parse(res)
+    sessions = {}
+    for node in dom.findall('.//Video'):
+        session_id = et_get(node.find('.//TranscodeSession'), 'key')
+        if session_id:
+            sessions[session_id] = {
+                'file': et_get(node.find('.//Media/Part'), 'file')
+        }
+    return sessions
+
+def get_sessions():
+    sessions = {}
+
+    plex_sessions = get_plex_sessions()
+
+    for proc in psutil.process_iter():
+        try:
+            pinfo = proc.as_dict(attrs=['pid', 'name', 'username', 'cmdline'])
+        except psutil.NoSuchProcess:
+            pass
+        else:
+            # Check the parent to make sure it is the "Plex Transcoder"
+            if pinfo['name'] == 'ssh' and 'plex' in proc.parent.name.lower():
+                cmdline = ' '.join(pinfo['cmdline'])
+                m = PRT_ID_RE.search(cmdline)
+                if m:
+                    session_id = re_get(SESSION_RE, cmdline)
+                    data = {
+                        'proc': proc,
+                        'plex': plex_sessions.get(session_id, {}),
+                        'host': {}
+                    }
+
+                    host = re_get(SSH_HOST_RE, cmdline, 'all')
+                    if host:
+                        data['host'] = {
+                            'user':    host[0],
+                            'address': host[1]
+                        }
+
+                    sessions[m.groups()[0]] = data
+    return sessions
+
+
+def sessions():
+    if psutil is None:
+        print "Missing required library 'psutil'.  Try 'pip install psutil'."
+        return
+
+    sessions = get_sessions()
+    for i, (session_id, session) in enumerate(sessions.items()):
+        print "Session %s/%s" % (i+1, len(sessions))
+        print "  Host: %s" % session.get('host', {}).get('address')
+        print "  File: %s" % session.get('plex', {}).get('file')
+
 
 def version():
     print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
@@ -335,7 +430,8 @@ def usage():
         "  install               Install PRT for the first time and then sets up configuration\n" 
         "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" 
         "  add_host              Add an extra host to the list of slaves PRT is to use\n" 
-        "  remove_host           Removes a host from the list of slaves PRT is to use\n")
+        "  remove_host           Removes a host from the list of slaves PRT is to use\n"
+        "  sessions              Display current sessions\n")
 
 
 def main():
@@ -423,6 +519,9 @@ def main():
     elif sys.argv[1] == "overwrite":
             overwrite_transcoder_after_upgrade()
             print "Transcoder overwritten successfully"
+
+    elif sys.argv[1] == "sessions":
+        sessions()
 
     # Todo: list_hosts option to show current hosts to aid add/remove_host options - Liviynz
 
