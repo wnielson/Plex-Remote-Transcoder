@@ -370,31 +370,26 @@ def get_sessions():
     plex_sessions = get_plex_sessions()
 
     for proc in psutil.process_iter():
-        try:
-            pinfo = proc.as_dict(attrs=['pid', 'name', 'username', 'cmdline'])
-        except psutil.NoSuchProcess:
-            pass
-        else:
-            # Check the parent to make sure it is the "Plex Transcoder"
-            if pinfo['name'] == 'ssh' and 'plex' in proc.parent.name.lower():
-                cmdline = ' '.join(pinfo['cmdline'])
-                m = PRT_ID_RE.search(cmdline)
-                if m:
-                    session_id = re_get(SESSION_RE, cmdline)
-                    data = {
-                        'proc': proc,
-                        'plex': plex_sessions.get(session_id, {}),
-                        'host': {}
+        # Check the parent to make sure it is the "Plex Transcoder"
+        if proc.name == 'ssh' and 'plex' in proc.parent.name.lower():
+            cmdline = ' '.join(proc.cmdline)
+            m = PRT_ID_RE.search(cmdline)
+            if m:
+                session_id = re_get(SESSION_RE, cmdline)
+                data = {
+                    'proc': proc,
+                    'plex': plex_sessions.get(session_id, {}),
+                    'host': {}
+                }
+
+                host = re_get(SSH_HOST_RE, cmdline, 'all')
+                if host:
+                    data['host'] = {
+                        'user':    host[0],
+                        'address': host[1]
                     }
 
-                    host = re_get(SSH_HOST_RE, cmdline, 'all')
-                    if host:
-                        data['host'] = {
-                            'user':    host[0],
-                            'address': host[1]
-                        }
-
-                    sessions[m.groups()[0]] = data
+                sessions[m.groups()[0]] = data
     return sessions
 
 
