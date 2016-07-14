@@ -370,8 +370,17 @@ def get_sessions():
     plex_sessions = get_plex_sessions()
 
     for proc in psutil.process_iter():
+        parent = None
+        if callable(proc.parent):
+            parent = proc.parent()
+        else:
+            parent = proc.parent
+
+        if not parent or not hasattr(parent, 'name'):
+            continue
+
         # Check the parent to make sure it is the "Plex Transcoder"
-        if proc.name == 'ssh' and 'plex' in proc.parent.name.lower():
+        if proc.name == 'ssh' and 'plex' in parent.name.lower():
             cmdline = ' '.join(proc.cmdline)
             m = PRT_ID_RE.search(cmdline)
             if m:
