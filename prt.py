@@ -370,23 +370,28 @@ def get_sessions():
     plex_sessions = get_plex_sessions()
 
     for proc in psutil.process_iter():
-        parent = None
-        if callable(proc.parent):
-            parent = proc.parent()
-        else:
-            parent = proc.parent
-
-        if not parent or not hasattr(parent, 'name'):
+        parent_name = None
+        try:
+            if callable(proc.parent):
+                parent_name = proc.parent().name()
+            else:
+                parent_name = proc.parent.name
+        except:
             continue
 
+        if not parent_name:
+            continue
+
+        pinfo = proc.as_dict(['name', 'cmdline'])
+
         # Check the parent to make sure it is the "Plex Transcoder"
-        if proc.name == 'ssh' and 'plex' in parent.name.lower():
-            cmdline = ' '.join(proc.cmdline)
+        if pinfo['name'] == 'ssh' and 'plex' in parent_name.lower():
+            cmdline = ' '.join(pinfo['cmdline'])
             m = PRT_ID_RE.search(cmdline)
             if m:
                 session_id = re_get(SESSION_RE, cmdline)
                 data = {
-                    'proc': proc,
+                    'proc': pinfo,
                     'plex': plex_sessions.get(session_id, {}),
                     'host': {}
                 }
@@ -400,7 +405,6 @@ def get_sessions():
 
                 sessions[m.groups()[0]] = data
     return sessions
-
 
 def sessions():
     if psutil is None:
