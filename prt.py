@@ -17,6 +17,7 @@ import subprocess
 import sys
 import time
 import urllib
+import urllib2
 import uuid
 
 from distutils.spawn import find_executable
@@ -47,6 +48,7 @@ DEFAULT_CONFIG = {
     "path_script":    None,
     "servers_script": None,
     "servers":   {},
+    "auth_token": None,
     "logging":   {
         "version": 1,
         "disable_existing_loggers": False,
@@ -91,7 +93,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 
 def get_config():
@@ -110,6 +112,31 @@ def save_config(d):
     except Exception, e:
         print "Error loading config: %s" % str(e)
     return False
+
+
+def get_auth_token():
+    url = "https://plex.tv/users/sign_in.json"
+    payload = urllib.urlencode({
+        "user[login]": raw_input("Plex Username: "),
+        "user[password]": getpass.getpass("Plex Password: "),
+        "X-Plex-Client-Identifier": "Plex-Remote-Transcoder-v%s" % __version__,
+        "X-Plex-Product": "Plex-Remote-Transcoder",
+        "X-Plex-Version": __version__
+    })
+
+    req = urllib2.Request(url, payload)
+    try:
+        res = urllib2.urlopen(req)
+    except:
+        print "Error getting auth token...invalid credentials?"
+        return False
+
+    if res.code not in [200, 201]:
+        print "Invalid credentials"
+        return False
+
+    data = json.load(res)
+    return data['user']['authToken']
 
 
 def get_system_load_local():
@@ -352,8 +379,12 @@ def et_get(node, attrib, default=None):
     return default
 
 
-def get_plex_sessions():
-    res = urllib.urlopen('http://localhost:32400/status/sessions')
+def get_plex_sessions(auth_token=None):
+    url = 'http://localhost:32400/status/sessions'
+    if auth_token:
+        url += "?X-Plex-Token=%s" % auth_token
+
+    res = urllib.urlopen(url)
     dom = ET.parse(res)
     sessions = {}
     for node in dom.findall('.//Video'):
@@ -367,8 +398,16 @@ def get_plex_sessions():
 def get_sessions():
     sessions = {}
 
-    plex_sessions = get_plex_sessions()
+    config = get_config()
+    if config.get('auth_token') == None:
+        config['auth_token'] = get_auth_token()
+        if not config['auth_token']:
+            return sessions
+        save_config(config)
 
+    sessions = {}
+
+    plex_sessions = get_plex_sessions(auth_token=config['auth_token'])
     for proc in psutil.process_iter():
         parent_name = None
         try:
