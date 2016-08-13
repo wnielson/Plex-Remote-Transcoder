@@ -93,7 +93,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 
 
 def get_config():
@@ -237,9 +237,19 @@ def overwrite_transcoder_after_upgrade():
 def build_env(host=None):
     # TODO: This really should be done in a way that is specific to the target
     #       in the case that the target is a different architecture than the host
+    ffmpeg_path = os.environ["FFMPEG_EXTERNAL_LIBS"]
+    backslashcheck = re.search(r'\\', ffmpeg_path)
+    if backslashcheck is not None:
+        ffmpeg_path_fixed = ffmpeg_path.replace('\\','')
+        os.environ["FFMPEG_EXTERNAL_LIBS"] = str(ffmpeg_path_fixed)
+
     envs = ["export %s=%s" % (k, pipes.quote(v)) for k,v in os.environ.items()]
     envs.append("export PRT_ID=%s" % uuid.uuid1().hex)
     return ";".join(envs)
+
+
+# def check_gracenote_tmp():
+
 
 
 def transcode_local():
