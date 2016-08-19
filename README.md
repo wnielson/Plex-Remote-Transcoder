@@ -13,6 +13,12 @@ guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Inst
 Addtionally, for proposed features and some current limitations, check out
 [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
 
+**NOTE**
+
+Upgrading `Plex Media Server` often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.
+
+**The latest confirmed working version** is `Plex Media Server` 1.0.3.2461.  If you try a newer version and encounter an issue, please report it.
+
 ## Releases
 
 For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).  For the newest version of Plex Media Server, use the main branch or the [newest release](https://github.com/wnielson/Plex-Remote-Transcoder/releases).
