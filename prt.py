@@ -36,10 +36,10 @@ log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
-    TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/Resources/"
+    TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/"
 elif sys.platform.startswith('linux'):
     # Linux
-    TRANSCODER_DIR  = "/usr/lib/plexmediaserver/Resources/"
+    TRANSCODER_DIR  = "/usr/lib/plexmediaserver/"
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -93,7 +93,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.3.5"
+__version__ = "0.4.0"
 
 
 def get_config():
@@ -237,7 +237,7 @@ def overwrite_transcoder_after_upgrade():
 def build_env(host=None):
     # TODO: This really should be done in a way that is specific to the target
     #       in the case that the target is a different architecture than the host
-    ffmpeg_path = os.environ["FFMPEG_EXTERNAL_LIBS"]
+    ffmpeg_path = os.environ.get("FFMPEG_EXTERNAL_LIBS", "")
     backslashcheck = re.search(r'\\', ffmpeg_path)
     if backslashcheck is not None:
         ffmpeg_path_fixed = ffmpeg_path.replace('\\','')
