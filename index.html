@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="no-js ie6"><![endif]-->
+<!--[if IE 7 ]><html class="no-js ie7"><![endif]-->
+<!--[if IE 8 ]><html class="no-js ie8"><![endif]-->
+<!--[if IE 9 ]><html class="no-js ie9"><![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,maximum-scale=1">
+    
+      
+        <title>Plex Remote Transcoder</title>
+      
+      
+      
+      
+    
+    <meta property="og:url" content="None">
+    <meta property="og:title" content="Plex Remote Transcoder">
+    <meta property="og:image" content="None/./">
+    <meta name="apple-mobile-web-app-title" content="Plex Remote Transcoder">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    
+    <link rel="shortcut icon" type="image/x-icon" href="./assets/images/favicon-e565ddfa3b.ico">
+    <link rel="icon" type="image/x-icon" href="./assets/images/favicon-e565ddfa3b.ico">
+    <style>
+      @font-face {
+      	font-family: 'Icon';
+      	src: url('./assets/fonts/icon.eot?52m981');
+      	src: url('./assets/fonts/icon.eot?#iefix52m981')
+               format('embedded-opentype'),
+      		   url('./assets/fonts/icon.woff?52m981')
+               format('woff'),
+      		   url('./assets/fonts/icon.ttf?52m981')
+               format('truetype'),
+      		   url('./assets/fonts/icon.svg?52m981#icon')
+               format('svg');
+      	font-weight: normal;
+      	font-style: normal;
+      }
+    </style>
+    <link rel="stylesheet" href="./assets/stylesheets/application-a422ff04cc.css">
+    
+      <link rel="stylesheet" href="./assets/stylesheets/palettes-05ab2406df.css">
+    
+    
+      
+      
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700|Ubuntu+Mono">
+      <style>
+        body, input {
+          font-family: 'Ubuntu', Helvetica, Arial, sans-serif;
+        }
+        pre, code {
+          font-family: 'Ubuntu Mono', 'Courier New', 'Courier', monospace;
+        }
+      </style>
+    
+    
+    <script src="./assets/javascripts/modernizr-4ab42b99fd.js"></script>
+    
+  </head>
+  
+  
+  
+  <body class="palette-primary-blue-grey palette-accent-orange">
+    
+    <div class="backdrop">
+      <div class="backdrop-paper"></div>
+    </div>
+    <input class="toggle" type="checkbox" id="toggle-drawer">
+    <input class="toggle" type="checkbox" id="toggle-search">
+    <label class="toggle-button overlay" for="toggle-drawer"></label>
+    <header class="header">
+      <nav aria-label="Header">
+  <div class="bar default">
+    <div class="button button-menu" role="button" aria-label="Menu">
+      <label class="toggle-button icon icon-menu" for="toggle-drawer">
+        <span></span>
+      </label>
+    </div>
+    <div class="stretch">
+      <div class="title">
+        
+          <span class="path">
+            
+          </span>
+        
+        Plex Remote Transcoder
+      </div>
+    </div>
+    
+    
+      
+      <div class="button button-github" role="button" aria-label="GitHub">
+        <a href="https://github.com/wnielson" title="@wnielson on GitHub" target="_blank" class="toggle-button icon icon-github"></a>
+      </div>
+    
+    <div class="button button-search" role="button" aria-label="Search">
+      <label class="toggle-button icon icon-search" title="Search" for="toggle-search"></label>
+    </div>
+  </div>
+  <div class="bar search">
+    <div class="button button-close" role="button" aria-label="Close">
+      <label class="toggle-button icon icon-back" for="toggle-search"></label>
+    </div>
+    <div class="stretch">
+      <div class="field">
+        <input class="query" type="text" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck>
+      </div>
+    </div>
+    <div class="button button-reset" role="button" aria-label="Search">
+      <button class="toggle-button icon icon-close" id="reset-search"></button>
+    </div>
+  </div>
+</nav>
+    </header>
+    <main class="main">
+      
+      <div class="drawer">
+        <nav aria-label="Navigation">
+  
+  <a href="/" class="project">
+    <div class="banner">
+      
+      <div class="name">
+        <strong>
+          Plex Remote Transcoder
+          <span class="version">
+            
+          </span>
+        </strong>
+        
+      </div>
+    </div>
+  </a>
+  <div class="scrollable">
+    <div class="wrapper">
+      
+      <div class="toc">
+        <ul>
+          
+            
+  <li>
+    <a class="current" title="Home" href=".">
+      Home
+    </a>
+    
+      
+        
+      
+      
+        <ul>
+          
+            <li class="anchor">
+              <a title="Releases" href="#releases">
+                Releases
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Contributing" href="#contributing">
+                Contributing
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="How Does it Work?" href="#how-does-it-work">
+                How Does it Work?
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="How is the Useful?" href="#how-is-the-useful">
+                How is the Useful?
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Help" href="#help">
+                Help
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Configuration" href="#configuration">
+                Configuration
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Contributors" href="#contributors">
+                Contributors
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Donations" href="#donations">
+                Donations
+              </a>
+            </li>
+          
+        </ul>
+      
+    
+  </li>
+
+          
+        </ul>
+        
+          <hr>
+          <span class="section">The author</span>
+          <ul>
+            
+            
+              
+              <li>
+                <a href="https://github.com/wnielson" target="_blank" title="@wnielson on GitHub">
+                  @wnielson on GitHub
+                </a>
+              </li>
+            
+          </ul>
+        
+      </div>
+    </div>
+  </div>
+</nav>
+      </div>
+      <article class="article">
+        <div class="wrapper">
+          
+          <h1 id="plex-remote-transcoder">Plex Remote Transcoder<a class="headerlink" href="#plex-remote-transcoder" title="Permanent link">&para;</a></h1>
+<p><a href="https://gitter.im/wnielson/Plex-Remote-Transcoder?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/wnielson/Plex-Remote-Transcoder" src="https://badges.gitter.im/wnielson/Plex-Remote-Transcoder.svg" /></a></p>
+<p>A distributed transcoding backend for Plex.</p>
+<p>Please help by reporting bugs or with pull-requests.</p>
+<p>For those interested in testing this out quickly, I&rsquo;ve put together a step by
+step guide for getting this working on two Ubuntu machines.  You can find the
+guide <a href="https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Install">here</a>.</p>
+<p>Addtionally, for proposed features and some current limitations, check out
+<a href="https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&amp;-Additional-Features">this page</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Upgrading <code>Plex Media Server</code> often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.</p>
+</div>
+<h2 id="releases">Releases<a class="headerlink" href="#releases" title="Permanent link">&para;</a></h2>
+<p>The table below shows what version of <code>Plex Remote Transcoder</code> to use based off of which version of <code>Plex Media Server</code> you are currently running.</p>
+<table>
+<thead>
+<tr>
+<th>Plex Media Server Version</th>
+<th>Plex Remote Transcoder Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1.1.0.2611</code></td>
+<td><code>master</code> (<a href="https://github.com/wnielson/Plex-Remote-Transcoder/archive/master.zip">zip</a>)</td>
+</tr>
+<tr>
+<td>Below <code>1.1.0</code></td>
+<td><code>0.3.5</code>  (<a href="https://github.com/wnielson/Plex-Remote-Transcoder/archive/0.3.5.zip">zip</a>)</td>
+</tr>
+<tr>
+<td>Below <code>1.0</code></td>
+<td><code>0.2.2</code>  (<a href="https://github.com/wnielson/Plex-Remote-Transcoder/archive/0.2.2.zip">zip</a>)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using a version of <code>Plex Media Server</code> not mentioned in the above table, you may encounter issues.  If you do have issues, <a href="https://github.com/wnielson/Plex-Remote-Transcoder/issues">please report them</a>!</p>
+</div>
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<p>Bug fixes/reports and feature requests are welcome!  Either submit a pull request or create a new issue.  There is also a <a href="https://gitter.im/wnielson/Plex-Remote-Transcoder">discussion board</a>.</p>
+<h2 id="how-does-it-work">How Does it Work?<a class="headerlink" href="#how-does-it-work" title="Permanent link">&para;</a></h2>
+<p>There have been quite a few projects attempting to load balance a Plex server,
+most of which involve proxying HTTP requests between multiple
+<code>Plex Media Server</code> (<code>PMS</code>) installations.  This project takes a different, and
+arguably easier approach that simply involves running the <code>Plex New Transcoder</code>
+on a remote host.  In this setup there is only ever <strong>one</strong> <code>PMS</code> installation
+(the <code>master</code> node), but there can be any number of transcode hosts (<code>slave</code>
+nodes).  Since transcoding is typically the most processor intensive aspect of
+<code>PMS</code>, it makes sense to be able to distribute this workload among all available
+computing resources.</p>
+<p>The way this works is by replacing the default <code>Plex New Transcoder</code> binary on
+the master <code>PMS</code> with a wrapper.  This wrapper allows us to intercept the
+transcode request on the <code>master</code> node and send it to a transcode <code>slave</code> node.
+The transcode <code>slave</code> invokes the true <code>Plex New Transcoder</code> binary, does the
+(trans|en)coding and saves the video segments to a network mounted shared
+filesystem on the <code>master</code>.  The <code>master</code> then sends these segments to the
+client and the video is played back just like normal.</p>
+<h2 id="how-is-the-useful">How is the Useful?<a class="headerlink" href="#how-is-the-useful" title="Permanent link">&para;</a></h2>
+<p>That depends.  It may not be if you have a powerful <code>PMS</code> and/or very few
+simultaneous users/devices.  If however you often see your main server being
+ground to halt because of the transcoder <strong>and</strong> you have access to additional
+computational capacity, this might be useful to you.</p>
+<p>This approach also makes it possible, in theory, to take advantage of scalable
+computing via services like Amazon&rsquo;s ECS and Google&rsquo;s Compute Engine.  By
+default you could have a  dedicated, cheap instance (like ECS&rsquo;s <code>t2.micro</code>)
+running <code>PMS</code>, then when a user requests a stream, a larger ECS instance could
+be spawned to do the encoding.  When the user is done watching, the extra ECS
+instance can be turned off, thereby saving you money.</p>
+<h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>
+<p>Right now, things are pretty rough.  Trying to figure out why something isn&rsquo;t
+working is difficult, but we&rsquo;re working on making this easier.  Also,
+installation isn&rsquo;t easy and there are lots of places to make mistakes, we&rsquo;re
+working on that too.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>The configuration file is located in a file named <code>~/.prt.conf</code>.  It should be a
+valid <code>JSON</code> file and is created for you the first time you run <code>prt install</code>.
+Below is a list of some configuration options that can currently only be set
+by manually editing this file.</p>
+<p><strong><code>servers_script</code></strong></p>
+<p>This option can be used to specify the path to an executable that will return a
+list of currently available transcode <code>slave</code> node.  It is called before every
+transcode request and should return a list of transcode nodes in the following
+format:</p>
+<div class="codehilite"><pre>hostname-1 22 plex
+hostname-2 22 plex
+</pre></div>
+
+
+<p>where each line is a new host, consisting of three entries: the hostname or IP
+address, SSH port and SSH username.</p>
+<p><strong><code>path_script</code></strong></p>
+<p>This option can be used to specify the path to an executable that accepts a
+single argument at the command line and returns a single line to <code>stdout</code>.  The
+single input parameter is the full path to the requested item to transcode.  If
+the path is to be modified or changed, then the new path should be written back
+to <code>stdout</code>.  A simple example in Python that simply returns the same path is
+given below.</p>
+<div class="codehilite"><pre><span class="c">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+
+<p><strong><code>logging</code></strong></p>
+<p>TODO: Document this.</p>
+<h2 id="contributors">Contributors<a class="headerlink" href="#contributors" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Weston Nielson (Owner) - wnielson@github</li>
+<li>Andy Livingstone - liviynz@github</li>
+</ul>
+<h2 id="donations">Donations<a class="headerlink" href="#donations" title="Permanent link">&para;</a></h2>
+<p>Some people have ask about how to dontate, so if you want to buy me a beer here are some links.  Cheers!</p>
+<p><a href="https://patreon.com/wnielson"><img alt="Donate at https://patreon.com/wnielson" src="https://img.shields.io/badge/patreon-donate-yellow.svg" /></a></p>
+<p><a href="https://www.paypal.me/wnielson"><img alt="Donate at https://www.paypal.me/wnielson" src="https://img.shields.io/badge/paypal-donate-yellow.svg" /></a></p>
+          <aside class="copyright" role="note">
+            
+            Documentation built with
+            <a href="http://www.mkdocs.org" target="_blank">MkDocs</a>
+            using the
+            <a href="http://squidfunk.github.io/mkdocs-material/" target="_blank">
+              Material
+            </a>
+            theme.
+          </aside>
+          
+            <footer class="footer">
+              
+            </footer>
+          
+        </div>
+      </article>
+      <div class="results" role="status" aria-live="polite">
+        <div class="scrollable">
+          <div class="wrapper">
+            <div class="meta"></div>
+            <div class="list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script>
+      var base_url = '.';
+      var repo_id  = '';
+    </script>
+    <script src="./assets/javascripts/application-997097ee0c.js"></script>
+    
+    
+  </body>
+</html>
