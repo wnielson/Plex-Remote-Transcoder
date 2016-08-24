@@ -301,7 +301,7 @@ def transcode_remote():
 
     command = REMOTE_ARGS % {
         "env":          build_env(),
-        "working_dir":  os.getcwd(),
+        "working_dir":  pipes.quote(os.getcwd()),
         "command":      "prt_local",
         "args":         ' '.join([pipes.quote(a) for a in args])
     }
