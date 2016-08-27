@@ -1,0 +1,18 @@
+site_name: Plex Remote Transcoder
+theme: 'material'
+markdown_extensions:
+    - smarty
+    - toc:
+        permalink: True
+    - sane_lists
+    - admonition
+    - codehilite(pygments_style=trac)
+    - toc:
+        permalink: True
+    - fenced_code
+extra:
+  author:
+    github: 'wnielson'
+  palette:
+    primary: 'blue grey'
+    accent: 'orange'
