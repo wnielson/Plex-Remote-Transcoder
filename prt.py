@@ -32,14 +32,22 @@ try:
 except:
     psutil = None
 
+try:
+    from termcolor import colored
+except:
+    def colored(msg, *args):
+        return msg
+
 log = logging.getLogger("prt")
 
 if sys.platform == "darwin":
     # OS X
-    TRANSCODER_DIR  = "/Applications/Plex Media Server.app/Contents/"
+    TRANSCODER_DIR = "/Applications/Plex Media Server.app/Contents/"
+    SETTINGS_PATH  = "~/Library/Preferences/com.plexapp.plexmediaserver"
 elif sys.platform.startswith('linux'):
     # Linux
-    TRANSCODER_DIR  = "/usr/lib/plexmediaserver/"
+    TRANSCODER_DIR = "/usr/lib/plexmediaserver/"
+    SETTINGS_PATH  = "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Preferences.xml"
 else:
     raise NotImplementedError("This platform is not yet supported")
 
@@ -93,7 +101,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 
 def get_config():
@@ -113,6 +121,12 @@ def save_config(d):
         print "Error loading config: %s" % str(e)
     return False
 
+
+def printf(message, *args, **kwargs):
+    color = kwargs.get('color')
+    attrs = kwargs.get('attrs')
+    sys.stdout.write(colored(message % args, color, attrs=attrs))
+    sys.stdout.flush()
 
 def get_auth_token():
     url = "https://plex.tv/users/sign_in.json"
@@ -455,6 +469,91 @@ def get_sessions():
                 sessions[m.groups()[0]] = data
     return sessions
 
+def check_config():
+    """
+    Run through various diagnostic checks to see if things are configured
+    correctly.
+    """
+    config = get_config()
+    errors = []
+
+    printf("Performing PRT configuration check\n\n", color="blue", attrs=['bold'])
+
+    # First, check the user
+    user = getpass.getuser()
+    if user != "plex":
+        printf("WARNING: Current user is not 'plex'\n", color="red")
+
+    try:
+        settings_fh = open(SETTINGS_PATH)
+        dom = ET.parse(settings_fh)
+        settings = dom.getroot().attrib
+    except Exception, e:
+        printf("ERROR: Couldn't open settings file - %s", SETTINGS_PATH, color="red")
+        return False
+
+    config = get_config()
+    if config.get('auth_token') == None:
+        config['auth_token'] = get_auth_token()
+
+    url = 'http://localhost:32400/library/sections'
+    if config['auth_token']:
+        url += "?X-Plex-Token=%s" % config['auth_token']
+
+    res = urllib.urlopen(url)
+    dom = ET.parse(res)
+    media_paths = []
+    for node in dom.findall('.//Location'):
+        path = et_get(node, 'path')
+        if path not in media_paths:
+            media_paths.append(path)
+
+    media_paths.append(TRANSCODER_DIR)
+    paths_modes = {
+        5: media_paths,
+        7: [settings['TranscoderTempDirectory']]
+    }
+
+    # Let's check SSH access
+    for address, server in config['servers'].items():
+        printf("Host %s\n", address)
+
+        proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
+            "-p", server["port"], "prt", "get_load"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc.wait()
+
+        printf("  Connect: ")
+        if proc.returncode != 0:
+            printf("FAIL\n", color="red")
+            printf("    %s\n" % proc.stderr.read())
+            continue
+        else:
+            printf("OK\n", color="green")
+
+        for req_mode, paths in paths_modes.items():
+            for path in paths:
+                printf("  Path: '%s'\n", path)
+                proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
+                    "-p", server["port"], "stat", "--printf='%U %a'", path],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc.wait()
+
+                username, mode = proc.stdout.read().strip().split()
+                printf("    User:  %s\n", username)
+                printf("    Mode:  %s\n", mode)
+
+                if username != 'plex':
+                    printf("    WARN:  Not owned by plex user\n", color="yellow")
+                    if int(mode[-1]) < req_mode:
+                        printf("    ERROR: Bad permissions\n", color="red")
+                else:
+                    if int(mode[0]) < req_mode:
+                        printf("    ERROR: Bad permissions\n", color="red")
+
+        printf("\n")
+
+
 def sessions():
     if psutil is None:
         print "Missing required library 'psutil'.  Try 'pip install psutil'."
@@ -488,7 +587,8 @@ def usage():
         "  overwrite             Fix PRT after PMS has had a version update breaking PRT\n" 
         "  add_host              Add an extra host to the list of slaves PRT is to use\n" 
         "  remove_host           Removes a host from the list of slaves PRT is to use\n"
-        "  sessions              Display current sessions\n")
+        "  sessions              Display current sessions\n"
+        "  check_config          Checks the current configuration for errors\n")
 
 
 def main():
@@ -579,6 +679,9 @@ def main():
 
     elif sys.argv[1] == "sessions":
         sessions()
+
+    elif sys.argv[1] == "check_config":
+        check_config()
 
     # Todo: list_hosts option to show current hosts to aid add/remove_host options - Liviynz
 
