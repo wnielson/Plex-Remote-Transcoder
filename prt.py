@@ -535,7 +535,7 @@ def check_config():
             for path in paths:
                 printf("  Path: '%s'\n", path)
                 proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
-                    "-p", server["port"], "stat", "--printf='%U %a'", path],
+                    "-p", server["port"], "stat", "--printf='%U %a'", "'" + path "'"],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 proc.wait()
 
