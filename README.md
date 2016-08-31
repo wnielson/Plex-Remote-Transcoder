@@ -17,7 +17,7 @@ Addtionally, for proposed features and some current limitations, check out
 
 Upgrading `Plex Media Server` often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.
 
-**The latest confirmed working version** is `Plex Media Server` 1.0.3.2461.  If you try a newer version and encounter an issue, please report it.
+**The latest confirmed working version** is `Plex Media Server` 1.1.0.2611.  If you try a newer version and encounter an issue, please report it.
 
 ## Releases
 
