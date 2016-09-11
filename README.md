@@ -21,9 +21,11 @@ Upgrading `Plex Media Server` often breaks things and it takes us some time to f
 
 ## Releases
 
-For versions of Plex Media Server below version 1.1.0. use release [0.3.5](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.3.5).  For the newest version of Plex Media Server, use the main$
+For versions of Plex Media Server below version 1.1.0. use release [0.3.5](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.3.5).
 
-For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).  For the newest version of Plex Media Server, use the main branch or the [newest release](https://github.com/wnielson/Plex-Remote-Transcoder/releases).
+For versions of Plex Media Server below version 1.0, use release [0.2.2](https://github.com/wnielson/Plex-Remote-Transcoder/releases/tag/0.2.2).
+
+For the newest version of Plex Media Server, use the main branch or the [newest release](https://github.com/wnielson/Plex-Remote-Transcoder/releases).
 
 ## Contributing
 
