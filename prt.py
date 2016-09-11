@@ -275,15 +275,33 @@ def transcode_local():
     #for k, v in ENV_VARS.items():
     #    os.environ[k] = v
 
+    config = get_config()
+    is_debug = config['logging']['loggers']['prt']['level'] == 'DEBUG'
+
+    if is_debug:
+        log.info('Debug mode - enabling verbose ffmpeg output')
+
+        # Change logging mode for FFMpeg to be verbose
+        for i, arg in enumerate(sys.argv):
+            if arg == '-loglevel':
+                sys.argv[i+1] = 'verbose'
+            elif arg == '-loglevel_plex':
+                sys.argv[i+1] = 'verbose'
+
     # Set up the arguments
     args = [get_transcoder_path()] + sys.argv[1:]
 
     log.info("Launching transcode_local: %s\n" % args)
 
     # Spawn the process
-    proc = subprocess.Popen(args)
-    proc.wait()
+    proc = subprocess.Popen(args, stderr=subprocess.PIPE)
 
+    while True:
+        output = proc.stderr.readline()
+        if output == '' and proc.poll() is not None:
+            break
+        if output and is_debug:
+            log.debug(output.strip('\n'))
 
 def transcode_remote():
     setup_logging()
