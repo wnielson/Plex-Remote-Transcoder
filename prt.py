@@ -101,7 +101,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 
 def get_config():
