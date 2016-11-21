@@ -19,7 +19,7 @@ Upgrading `Plex Media Server` often breaks things and it takes us some time to f
 
 **The latest confirmed working version** is `Plex Media Server` `1.2.3.2914-1ff0f18`.  If you try a newer version and encounter an issue, please report it.  In order to get this working, users have reported that the following steps need to be taken:
 
-1. Remove the codec directory: `rm -rf /var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Codecs/5a2d9a2-1127-linux-ubuntu-x86_64`)
+1. Remove the codec directory: `rm -rf '/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Codecs/5a2d9a2-1127-linux-ubuntu-x86_64'`)
 2. Remove the previous encoder: `rm -rf /usr/lib/plexmediaserver/plex_transcoder`
 3. Install Plex: `dpkg -i plexmediaserver_1.2.3.2914-1ff0f18_amd64.deb`
 
