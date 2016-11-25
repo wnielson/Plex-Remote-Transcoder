@@ -23,7 +23,7 @@ Addtionally, for proposed features and some current limitations, check out
     
 If you try a newer version and encounter an issue, please report it.
 
-### Upgrading
+### Upgrading Plex Media Server
 Users have reported that the following steps need to be taken in order to get `PRT` working with the newer versions of `Plex Media Server`:
 
 1. Remove the codec directory: `rm -rf '/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Codecs/5a2d9a2-1127-linux-ubuntu-x86_64'`)
