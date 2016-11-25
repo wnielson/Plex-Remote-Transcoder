@@ -4,20 +4,29 @@
 
 A distributed transcoding backend for Plex.
 
-Please help by reporting bugs or with pull-requests.
+Please help by reporting bugs, pull-requests or feature requests!
 
-For those interested in testing this out quickly, I've put together a step by
+For those interested in testing this out quickly, there is a step by
 step guide for getting this working on two Ubuntu machines.  You can find the
 guide [here](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Ubuntu-Install).
 
 Addtionally, for proposed features and some current limitations, check out
 [this page](https://github.com/wnielson/Plex-Remote-Transcoder/wiki/Improvements-&-Additional-Features).
 
+## Supported Versions
+
 **NOTE**
 
 Upgrading `Plex Media Server` often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.
 
-**The latest confirmed working version** is `Plex Media Server` `1.2.3.2914-1ff0f18`.  If you try a newer version and encounter an issue, please report it.  In order to get this working, users have reported that the following steps need to be taken:
+**The latest confirmed working version** of `Plex Media Server` is:
+
+     1.3.0.3059-6277334
+    
+If you try a newer version and encounter an issue, please report it.
+
+### Upgrading
+Users have reported that the following steps need to be taken in order to get `PRT` working with the newer versions of `Plex Media Server`:
 
 1. Remove the codec directory: `rm -rf '/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Codecs/5a2d9a2-1127-linux-ubuntu-x86_64'`)
 2. Remove the previous encoder: `rm -rf /usr/lib/plexmediaserver/plex_transcoder`
