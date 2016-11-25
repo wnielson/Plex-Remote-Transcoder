@@ -15,9 +15,7 @@ Addtionally, for proposed features and some current limitations, check out
 
 ## Supported Versions
 
-**NOTE**
-
-Upgrading `Plex Media Server` often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.
+**NOTE**  Upgrading `Plex Media Server` often breaks things and it takes us some time to figure out what needs to be fixed.  It is suggested that you avoid upgrading your Plex server before checking here first.
 
 **The latest confirmed working version** of `Plex Media Server` is:
 
