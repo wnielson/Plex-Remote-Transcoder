@@ -19,7 +19,7 @@ Addtionally, for proposed features and some current limitations, check out
 
 **The latest confirmed working version** of `Plex Media Server` is:
 
-     1.3.0.3059-6277334
+     1.3.4.3285
     
 If you try a newer version and encounter an issue, please report it.
 
