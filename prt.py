@@ -27,10 +27,7 @@ try:
 except:
     from xml.etree import ElementTree as ET
 
-try:
-    import psutil
-except:
-    psutil = None
+import psutil
 
 try:
     from termcolor import colored
@@ -101,8 +98,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.4.2"
-
+__version__ = "0.4.3"
 
 def get_config():
     path = os.path.expanduser("~/.prt.conf")
@@ -306,6 +302,17 @@ def transcode_local():
 def transcode_remote():
     setup_logging()
 
+    log.info("Checking for orphaned PRT processes")
+    for proc in psutil.process_iter():
+        try:
+            if proc.name == "ssh" and 'PLEX_MEDIA_SERVER' in ' '.join(proc.cmdline):
+                if proc.parent.pid == 1:
+                    log.info('Found orphaned PRT process (pid %s)...killing' % proc.pid)
+                    proc.terminate()
+                    proc.wait()
+        except psutil.NoSuchProcess:
+            pass
+
     config = get_config()
     args   = sys.argv[1:]
 
@@ -394,7 +401,8 @@ def transcode_remote():
     # TODO: Remap file-path to PMS URLs
     #
 
-    args = ["ssh", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
+    args = ["ssh", "-tt", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
+
 
     log.info("Launching transcode_remote with args %s\n" % args)
 

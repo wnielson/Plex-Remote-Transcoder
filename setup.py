@@ -38,5 +38,5 @@ setup(
             'prt_remote=prt:transcode_remote'
         ],
     },
-    install_requires=['termcolor']
+    install_requires=['termcolor', 'psutil']
 )
