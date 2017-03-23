@@ -303,15 +303,19 @@ def transcode_remote():
     setup_logging()
 
     log.info("Checking for orphaned PRT processes")
+    found = 0
     for proc in psutil.process_iter():
         try:
             if proc.name == "ssh" and 'PLEX_MEDIA_SERVER' in ' '.join(proc.cmdline):
                 if proc.parent.pid == 1:
                     log.info('Found orphaned PRT process (pid %s)...killing' % proc.pid)
+                    found += 1
                     proc.terminate()
                     proc.wait()
         except psutil.NoSuchProcess:
             pass
+
+    log.info("Found %d orphaned PRT processes" % found)
 
     config = get_config()
     args   = sys.argv[1:]
@@ -395,13 +399,13 @@ def transcode_remote():
     log.info("Using transcode host '%s'" % hostname)
 
     # Remap the 127.0.0.1 reference to the proper address
-    command = command.replace("127.0.0.1", config["ipaddress"])
+    #command = command.replace("127.0.0.1", config["ipaddress"])
 
     #
     # TODO: Remap file-path to PMS URLs
     #
 
-    args = ["ssh", "-tt", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
+    args = ["ssh", "-tt", "-R", "32400:127.0.0.1:32400", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
 
 
     log.info("Launching transcode_remote with args %s\n" % args)
