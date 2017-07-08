@@ -98,7 +98,7 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 def get_config():
     path = os.path.expanduser("~/.prt.conf")
@@ -319,6 +319,14 @@ def transcode_remote():
 
     config = get_config()
     args   = sys.argv[1:]
+
+
+    # FIX: This is (temporary?) fix for the EasyAudioEncoder (EAE) which uses a
+    #      hardcoded path in /tmp.  If we find that EAE is being used then we
+    #      force transcoding on the master
+    if 'eae_prefix' in ' '.join(args):
+        log.info("Found EAE is being used...forcing local transcode")
+        return transcode_local()
 
     # Check to see if we need to call a user-script to replace/modify the file path
     if config.get("path_script", None):
