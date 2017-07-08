@@ -25,7 +25,7 @@ If you try a newer version and encounter an issue, please report it.
 
 ### Currently Testing Version
 
-The most recently tested version is  `Plex Media Server` version `1.5.0.3501-3b8374a5c`.  I'm not marking this as supported yet until more people have confirmed that it is working correctly.
+The most recently tested version is  `Plex Media Server` version `1.7.5.4035-313f93718`.  I'm not marking this as supported yet until more people have confirmed that it is working correctly.
 
 **IMPORTANT**
 With this version you will need to ensure that the slaves are allowed to connect to the master without auth in order to everything to work correctly.  To do this, go to the server settings via your browser, navigate to the 'Network' tab (make sure "Show Advanced" is on). Scroll down to "List of IP addresses and networks that are allowed without auth". In that box, put in your slave addresses or network.
