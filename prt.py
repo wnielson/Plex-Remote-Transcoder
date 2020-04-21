@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Weston Nielson <wnielson@github>
-#
+# Andy Livingstone <liviynz@github>
 
 import filecmp
 import getpass
@@ -16,11 +16,12 @@ import shutil
 import subprocess
 import sys
 import time
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import uuid
 
 from distutils.spawn import find_executable
+import collections
 
 try:
     from xml.etree import cElementTree as ET
@@ -35,7 +36,10 @@ except:
     def colored(msg, *args):
         return msg
 
-log = logging.getLogger("prt")
+#import pydevd_pycharm
+#pydevd_pycharm.settrace('10.1.1.80', port=12345, stdoutToServer=True, stderrToServer=True)
+
+log = logging.getLogger("prt3")
 
 if sys.platform == "darwin":
     # OS X
@@ -67,7 +71,7 @@ DEFAULT_CONFIG = {
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "INFO",
                 "formatter": "simple",
-                "filename": "/tmp/prt.log",
+                "filename": "/opt/plex/tmp/prt3.log",
                 "maxBytes": 10485760,
                 "backupCount": 20,
                 "encoding": "utf8"
@@ -98,23 +102,23 @@ SESSION_RE  = re.compile(r'/session/([^/]*)/')
 SSH_HOST_RE = re.compile(r'ssh +([^@]+)@([^ ]+)')
 
 __author__  = "Weston Nielson <wnielson@github>"
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 def get_config():
-    path = os.path.expanduser("~/.prt.conf")
+    path = os.path.expanduser("~/.prt3.conf")
     try:
         return json.load(open(path))
-    except Exception, e:
+    except Exception as e:
         return DEFAULT_CONFIG.copy()
 
 
 def save_config(d):
-    path = os.path.expanduser("~/.prt.conf")
+    path = os.path.expanduser("~/.prt3.conf")
     try:
         json.dump(d, open(path, 'w'), indent=4)
         return True
-    except Exception, e:
-        print "Error loading config: %s" % str(e)
+    except Exception as e:
+        print(("Error loading config: %s" % str(e)))
     return False
 
 
@@ -126,23 +130,25 @@ def printf(message, *args, **kwargs):
 
 def get_auth_token():
     url = "https://plex.tv/users/sign_in.json"
-    payload = urllib.urlencode({
-        "user[login]": raw_input("Plex Username: "),
-        "user[password]": getpass.getpass("Plex Password: "),
+    headeruser = input("Plex Username:")
+    headerpw = getpass.getpass("Plex Password:")
+    payload = urllib.parse.urlencode({
+        "user[login]": headeruser,
+        "user[password]": headerpw,
         "X-Plex-Client-Identifier": "Plex-Remote-Transcoder-v%s" % __version__,
         "X-Plex-Product": "Plex-Remote-Transcoder",
         "X-Plex-Version": __version__
     })
 
-    req = urllib2.Request(url, payload)
+    req = urllib.request.Request(url, payload)
     try:
-        res = urllib2.urlopen(req)
+        res = urllib.request.urlopen(req)
     except:
-        print "Error getting auth token...invalid credentials?"
+        print("Error getting auth token...invalid credentials?")
         return False
 
     if res.code not in [200, 201]:
-        print "Invalid credentials"
+        print("Invalid credentials")
         return False
 
     data = json.load(res)
@@ -162,7 +168,7 @@ def get_system_load_remote(host, port, user):
     """
     Gets the result from ``get_system_load_local`` of a remote machine.
     """
-    proc = subprocess.Popen(["ssh", "%s@%s" % (user, host), "-p", port, "prt", "get_load"], stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["ssh", "%s@%s" % (user, host), "-p", port, "prt3", "get_load"], stdout=subprocess.PIPE)
     proc.wait()
     return [float(i) for i in proc.stdout.read().strip().split()]
 
@@ -188,31 +194,31 @@ def rename_transcoder():
     new_path = get_transcoder_path(NEW_TRANSCODER_NAME)
 
     if os.path.exists(new_path):
-        print "Transcoder appears to have been renamed previously...not renaming (try overwrite option)"
+        print("Transcoder appears to have been renamed previously...not renaming (try overwrite option)")
         return False
 
     try:
         os.rename(old_path, new_path)
-    except Exception, e:
-        print "Error renaming original transcoder: %s" % str(e)
+    except Exception as e:
+        print(("Error renaming original transcoder: %s" % str(e)))
         return False
 
     return True
 
 
 def install_transcoder():
-    prt_remote = find_executable("prt_remote")
+    prt_remote = find_executable("prt3_remote")
     if not prt_remote:
-        print "Couldn't find `prt_remote` executable"
+        print("Couldn't find `prt3_remote` executable")
         return
 
-    print "Renaming original transcoder"
+    print("Renaming original transcoder")
     if rename_transcoder():
         try:
             shutil.copyfile(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME))
-            os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0755)
-        except Exception, e:
-            print "Error installing new transcoder: %s" % str(e)
+            os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0o755)
+        except Exception as e:
+            print(("Error installing new transcoder: %s" % str(e)))
 
 
 # Overwrite_transcoder_after_upgrade function
@@ -224,24 +230,24 @@ def overwrite_transcoder_after_upgrade():
     old_path = get_transcoder_path(ORIGINAL_TRANSCODER_NAME)
     new_path = get_transcoder_path(NEW_TRANSCODER_NAME)
 
-    prt_remote = find_executable("prt_remote")
+    prt_remote = find_executable("prt3_remote")
     if not prt_remote:
-        print "Couldn't find `prt_remote` executable"
+        print("Couldn't find `prt3_remote` executable")
         sys.exit(2)
     elif os.path.exists(new_path):
-           print "Transcoder appears to have been renamed previously...checking if it's been overwritten"
+           print("Transcoder appears to have been renamed previously...checking if it's been overwritten")
            if not filecmp.cmp(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME), shallow=1):
                try:
                    shutil.copyfile(prt_remote, get_transcoder_path(ORIGINAL_TRANSCODER_NAME))
-                   os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0755)
-               except Exception, e:
-                   print "Error installing new transcoder: %s" % str(e)
+                   os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0o755)
+               except Exception as e:
+                   print(("Error installing new transcoder: %s" % str(e)))
                    sys.exit(2)
            else:
-               print "Transcoder hasn't been overwritten by upgrade, nothing to do"
+               print("Transcoder hasn't been overwritten by upgrade, nothing to do")
                sys.exit(1)
     else:
-         print "Transcoder hasn't been previously installed, please use install option"
+         print("Transcoder hasn't been previously installed, please use install option")
          sys.exit(1)
 
 def build_env(host=None):
@@ -253,7 +259,7 @@ def build_env(host=None):
         ffmpeg_path_fixed = ffmpeg_path.replace('\\','')
         os.environ["FFMPEG_EXTERNAL_LIBS"] = str(ffmpeg_path_fixed)
 
-    envs = ["export %s=%s" % (k, pipes.quote(v)) for k,v in os.environ.items()]
+    envs = ["export %s=%s" % (k, pipes.quote(v)) for k,v in list(os.environ.items())]
     envs.append("export PRT_ID=%s" % uuid.uuid1().hex)
     return ";".join(envs)
 
@@ -347,13 +353,13 @@ def transcode_remote():
             if new_path:
                 log.debug("Replacing path with: %s" % new_path)
                 args[idx] = new_path
-        except Exception, e:
+        except Exception as e:
             log.error("Error calling path_script: %s" % str(e))
 
     command = REMOTE_ARGS % {
         "env":          build_env(),
         "working_dir":  pipes.quote(os.getcwd()),
-        "command":      "prt_local",
+        "command":      "prt3_local",
         "args":         ' '.join([pipes.quote(a) for a in args])
     }
 
@@ -372,14 +378,14 @@ def transcode_remote():
                     "port": port,
                     "user": user
                 }
-        except Exception, e:
+        except Exception as e:
             log.error("Error retreiving host list via '%s': %s" % (config["servers_script"], str(e)))
 
     hostname, host = None, None
 
     # Let's try to load-balance
     min_load = None
-    for hostname, host in servers.items():
+    for hostname, host in list(servers.items()):
 
         log.debug("Getting load for host '%s'" % hostname)
         load = get_system_load_remote(hostname, host["port"], host["user"])
@@ -446,7 +452,7 @@ def get_plex_sessions(auth_token=None):
     if auth_token:
         url += "?X-Plex-Token=%s" % auth_token
 
-    res = urllib.urlopen(url)
+    res = urllib.request.urlopen(url)
     dom = ET.parse(res)
     sessions = {}
     for node in dom.findall('.//Video'):
@@ -473,7 +479,7 @@ def get_sessions():
     for proc in psutil.process_iter():
         parent_name = None
         try:
-            if callable(proc.parent):
+            if isinstance(proc.parent, collections.Callable):
                 parent_name = proc.parent().name()
             else:
                 parent_name = proc.parent.name
@@ -526,7 +532,7 @@ def check_config():
         settings_fh = open(SETTINGS_PATH)
         dom = ET.parse(settings_fh)
         settings = dom.getroot().attrib
-    except Exception, e:
+    except Exception as e:
         printf("ERROR: Couldn't open settings file - %s", SETTINGS_PATH, color="red")
         return False
 
@@ -538,7 +544,7 @@ def check_config():
     if config['auth_token']:
         url += "?X-Plex-Token=%s" % config['auth_token']
 
-    res = urllib.urlopen(url)
+    res = urllib.request.urlopen(url)
     dom = ET.parse(res)
     media_paths = []
     for node in dom.findall('.//Location'):
@@ -553,11 +559,11 @@ def check_config():
     }
 
     # Let's check SSH access
-    for address, server in config['servers'].items():
+    for address, server in list(config['servers'].items()):
         printf("Host %s\n", address)
 
         proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
-            "-p", server["port"], "prt", "get_load"],
+            "-p", server["port"], "prt3", "get_load"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         proc.wait()
 
@@ -569,7 +575,7 @@ def check_config():
         else:
             printf("OK\n", color="green")
 
-        for req_mode, paths in paths_modes.items():
+        for req_mode, paths in list(paths_modes.items()):
             for path in paths:
                 printf("  Path: '%s'\n", path)
                 proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
@@ -594,28 +600,28 @@ def check_config():
 
 def sessions():
     if psutil is None:
-        print "Missing required library 'psutil'.  Try 'pip install psutil'."
+        print("Missing required library 'psutil'.  Try 'pip install psutil'.")
         return
 
     sessions = get_sessions()
     for i, (session_id, session) in enumerate(sessions.items()):
-        print "Session %s/%s" % (i+1, len(sessions))
-        print "  Host: %s" % session.get('host', {}).get('address')
-        print "  File: %s" % session.get('plex', {}).get('file')
+        print(("Session %s/%s" % (i+1, len(sessions))))
+        print(("  Host: %s" % session.get('host', {}).get('address')))
+        print(("  File: %s" % session.get('plex', {}).get('file')))
 
 
 def version():
-    print "Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)
+    print(("Plex Remote Transcoder version %s, Copyright (C) %s\n" % (__version__, __author__)))
 
 
 # Usage function
 def usage():
     version()
-    print "Plex Remote Transcode comes with ABSOLUTELY NO WARRANTY.\n\n"\
+    print("Plex Remote Transcode comes with ABSOLUTELY NO WARRANTY.\n\n"\
           "This is free software, and you are welcome to redistribute it and/or modify\n"\
-          "it under the terms of the MIT License.\n\n"
-    print "Usage:\n"
-    print "  %s [options]\n" % os.path.basename(sys.argv[0])
+          "it under the terms of the MIT License.\n\n")
+    print("Usage:\n")
+    print(("  %s [options]\n" % os.path.basename(sys.argv[0])))
     print (
         "Options:\n\n" 
         "  usage, help, -h, ?    Show usage page\n" 
@@ -644,20 +650,20 @@ def main():
     # TODO: show_hosts_status to show current status across all nodes
 
     if sys.argv[1] == "get_load":
-        print " ".join([str(i) for i in get_system_load_local()])
+        print((" ".join([str(i) for i in get_system_load_local()])))
 
     elif sys.argv[1] == "get_cluster_load":
-        print "Cluster Load"
+        print("Cluster Load")
         config = get_config()
         servers = config["servers"]
-        for address, server in servers.items():
+        for address, server in list(servers.items()):
             load = ["%0.2f%%" % l for l in get_system_load_remote(address, server["port"], server["user"])]
-            print "  %15s: %s" % (address, ", ".join(load))
+            print(("  %15s: %s" % (address, ", ".join(load))))
 
     elif sys.argv[1] == "install":
-        print "Installing Plex Remote Transcoder"
+        print("Installing Plex Remote Transcoder")
         config = get_config()
-        config["ipaddress"] = raw_input("IP address of this machine: ")
+        config["ipaddress"] = input("IP address of this machine: ")
         save_config(config)
 
         install_transcoder()
@@ -675,18 +681,18 @@ def main():
             user = sys.argv[4]
 
         if host is None:
-            host = raw_input("Host: ")
+            host = input("Host: ")
         if port is None:
-            port = raw_input("Port: ")
+            port = eval(input("Port: "))
         if user is None:
-            user = raw_input("User: ")
+            user = input("User: ")
 
-        print "We're going to add the following transcode host:"
-        print "  Host: %s" % host
-        print "  Port: %s" % port
-        print "  User: %s" % user
+        print("We're going to add the following transcode host:")
+        print(("  Host: %s" % host))
+        print(("  Port: %s" % port))
+        print(("  User: %s" % user))
 
-        if raw_input("Proceed: [y/n]").lower() == "y":
+        if input("Proceed: [y/n]").lower() == "y":
             config = get_config()
             config["servers"][host] = {
                 "port": port,
@@ -694,16 +700,16 @@ def main():
             }
 
             if save_config(config):
-                print "Host successfully added"
+                print("Host successfully added")
 
     elif sys.argv[1] == "remove_host":
         config = get_config()
         try:
             del config["servers"][sys.argv[2]]
             save_config(config)
-            print "Host removed"
-        except Exception, e:
-            print "Error removing host: %s" % str(e)
+            print("Host removed")
+        except Exception as e:
+            print(("Error removing host: %s" % str(e)))
 
     # Added version option rather than just for no options
     elif any( [sys.argv[1] == "version", sys.argv[1] == "v", sys.argv[1] == "V"] ):
@@ -713,7 +719,7 @@ def main():
     # Overwrite option (for after plex package update/upgrade)
     elif sys.argv[1] == "overwrite":
             overwrite_transcoder_after_upgrade()
-            print "Transcoder overwritten successfully"
+            print("Transcoder overwritten successfully")
 
     elif sys.argv[1] == "sessions":
         sessions()
@@ -727,4 +733,6 @@ def main():
     else:
         usage()
         sys.exit(-1)
+
+
 
