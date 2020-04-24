@@ -11,14 +11,14 @@ import multiprocessing
 import os
 import pipes
 import re
-import shlex
+import base64
 import shutil
 import subprocess
 import sys
-import time
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
+import hashlib
+import urllib.request, urllib.error, urllib.parse, urllib.response
 import uuid
+import asyncio
 
 from distutils.spawn import find_executable
 import collections
@@ -128,30 +128,40 @@ def printf(message, *args, **kwargs):
     sys.stdout.write(colored(message % args, color, attrs=attrs))
     sys.stdout.flush()
 
+
 def get_auth_token():
     url = "https://plex.tv/users/sign_in.json"
     headeruser = input("Plex Username:")
     headerpw = getpass.getpass("Plex Password:")
-    payload = urllib.parse.urlencode({
-        "user[login]": headeruser,
-        "user[password]": headerpw,
-        "X-Plex-Client-Identifier": "Plex-Remote-Transcoder-v%s" % __version__,
+    client_name = "Plex-Remote-Transcoder-v%s" % __version__
+    client_version = "Plex-Remote-Transcoder"
+    client_id = hashlib.sha512('{} {}'.format(client_name, client_version).encode()).hexdigest()
+    base64string = base64.b64encode('{}:{}'.format(headeruser, headerpw).encode())
+    headers = {
+        'Authorization': 'Basic {}'.format(base64string.decode('ascii')),
+        "X-Plex-Client-Identifier": client_id,
         "X-Plex-Product": "Plex-Remote-Transcoder",
         "X-Plex-Version": __version__
-    })
+    }
 
-    req = urllib.request.Request(url, payload)
+    req = urllib.request.Request(url, headers=headers, method='POST')
     try:
         res = urllib.request.urlopen(req)
-    except:
+    except Exception as e:
+        print(str(e))
         print("Error getting auth token...invalid credentials?")
         return False
 
-    if res.code not in [200, 201]:
+    if res.status not in [200, 201]:
         print("Invalid credentials")
         return False
+#
+    #data = json.loads(res)
+    #data = json.loads(res.read().decode())
 
-    data = json.load(res)
+    print(res.status, res.headers)
+    data = json.loads(res.read().decode())
+    print('Auth-Token: {}'.format(data['user']['authentication_token']))
     return data['user']['authToken']
 
 
@@ -163,6 +173,24 @@ def get_system_load_local():
     load  = os.getloadavg()
     return [l/nproc * 100 for l in load]
 
+
+
+async def get_system_load_remote(host, port, user):
+    cmd = ["ssh", "%s@%s" % (user, host), "-p", port, "prt3", "get_load"]
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{cmd!r} exited with {proc.returncode}]')
+    if stdout:
+        print(f'[stdout]\n{stdout.decode()}')
+    if stderr:
+        print(f'[stderr]\n{stderr.decode()}')
+
+    return [float(i) for i in proc.stdout.read().strip().split()]
 
 def get_system_load_remote(host, port, user):
     """
@@ -219,6 +247,7 @@ def install_transcoder():
             os.chmod(get_transcoder_path(ORIGINAL_TRANSCODER_NAME), 0o755)
         except Exception as e:
             print(("Error installing new transcoder: %s" % str(e)))
+
 
 
 # Overwrite_transcoder_after_upgrade function
@@ -379,7 +408,7 @@ def transcode_remote():
                     "user": user
                 }
         except Exception as e:
-            log.error("Error retreiving host list via '%s': %s" % (config["servers_script"], str(e)))
+            log.error("Error retrieving host list via '%s': %s" % (config["servers_script"], str(e)))
 
     hostname, host = None, None
 
@@ -388,6 +417,9 @@ def transcode_remote():
     for hostname, host in list(servers.items()):
 
         log.debug("Getting load for host '%s'" % hostname)
+        #
+        #load = asyncio.run(get_system_load_remote(hostname, host["port"], host["user"]))
+        #
         load = get_system_load_remote(hostname, host["port"], host["user"])
 
         if not load:
@@ -419,7 +451,7 @@ def transcode_remote():
     # TODO: Remap file-path to PMS URLs
     #
 
-    args = ["ssh", "-tt", "-R", "32400:127.0.0.1:32400", "%s@%s" % (host["user"], hostname), "-p", host["port"]] + [command]
+
 
 
     log.info("Launching transcode_remote with args %s\n" % args)
@@ -604,10 +636,13 @@ def sessions():
         return
 
     sessions = get_sessions()
-    for i, (session_id, session) in enumerate(sessions.items()):
-        print(("Session %s/%s" % (i+1, len(sessions))))
-        print(("  Host: %s" % session.get('host', {}).get('address')))
-        print(("  File: %s" % session.get('plex', {}).get('file')))
+    if not sessions:
+        print ("There is currently no sessions in use.")
+    else:
+        for i, (session_id, session) in enumerate(sessions.items()):
+            print(("Session %s/%s" % (i+1, len(sessions))))
+            print(("  Host: %s" % session.get('host', {}).get('address')))
+            print(("  File: %s" % session.get('plex', {}).get('file')))
 
 
 def version():
@@ -635,7 +670,9 @@ def usage():
         "  check_config          Checks the current configuration for errors\n")
 
 
+#def main(argv):
 def main():
+
     # Specific usage options
     if len(sys.argv) < 2 or any((sys.argv[1] == "usage", sys.argv[1] == "help", sys.argv[1] == "-h",
             sys.argv[1] == "?",)):
@@ -658,6 +695,9 @@ def main():
         servers = config["servers"]
         for address, server in list(servers.items()):
             load = ["%0.2f%%" % l for l in get_system_load_remote(address, server["port"], server["user"])]
+            #
+            # load = ["%0.2f%%" % l for l in asyncio.run(get_system_load_remote(address, server["port"], server["user"]))]
+            #
             print(("  %15s: %s" % (address, ", ".join(load))))
 
     elif sys.argv[1] == "install":
@@ -735,4 +775,5 @@ def main():
         sys.exit(-1)
 
 
-
+#if __name__ == "__main__":
+#   main(sys.argv[1:])
