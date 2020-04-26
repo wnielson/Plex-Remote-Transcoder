@@ -13,6 +13,7 @@ import pipes
 import re
 import base64
 import shutil
+from shlex import quote
 import subprocess
 import sys
 import hashlib
@@ -156,9 +157,6 @@ def get_auth_token():
         print("Invalid credentials")
         return False
 #
-    #data = json.loads(res)
-    #data = json.loads(res.read().decode())
-
     print(res.status, res.headers)
     data = json.loads(res.read().decode())
     print('Auth-Token: {}'.format(data['user']['authentication_token']))
@@ -173,33 +171,104 @@ def get_system_load_local():
     load  = os.getloadavg()
     return [l/nproc * 100 for l in load]
 
-
-
-async def get_system_load_remote(host, port, user):
-    cmd = ["ssh", "%s@%s" % (user, host), "-p", port, "prt3", "get_load"]
-    proc = await asyncio.create_subprocess_shell(
-        cmd,
+async def get_system_load(sshcmd):
+    process = await asyncio.create_subprocess_shell(
+        sshcmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
-    stdout, stderr = await proc.communicate()
+    stdout, stderr = await process.communicate()
 
-    print(f'[{cmd!r} exited with {proc.returncode}]')
-    if stdout:
-        print(f'[stdout]\n{stdout.decode()}')
-    if stderr:
-        print(f'[stderr]\n{stderr.decode()}')
+    if process.returncode == 0:
+        wibble = 1
+        #print(
+        #    "Done: %s, pid=%s, result: %s"
+        #    % (sshcmd, process.pid, stdout.decode().strip()),
+        #    flush=True,
+        #)
+    else:
+        print(
+            "Failed: %s, pid=%s, result: %s"
+            % (sshcmd, process.pid, stderr.decode().strip()),
+            flush=True,
+        )
 
-    return [float(i) for i in proc.stdout.read().strip().split()]
+    result = [float(i) for i in stdout.decode().strip().split()]
+    loadpid = process.pid
+    loadreturn = process.returncode
+    loaderror = stderr.decode().strip()
+    #print("Result : %s, pid=%s, returncode=%s stderror=%s" % (result, loadpid, loadreturn, loaderror))
+    return result, loadpid, loadreturn, loaderror
 
-def get_system_load_remote(host, port, user):
-    """
-    Gets the result from ``get_system_load_local`` of a remote machine.
-    """
-    proc = subprocess.Popen(["ssh", "%s@%s" % (user, host), "-p", port, "prt3", "get_load"], stdout=subprocess.PIPE)
-    proc.wait()
-    return [float(i) for i in proc.stdout.read().strip().split()]
+async def remote_command(sshcmd):
+    process = await asyncio.create_subprocess_shell(
+        sshcmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
 
+    stdout, stderr = await process.communicate()
+
+    if process.returncode == 0:
+        wibble = 1
+        #print(
+        #    "Done: %s, pid=%s, result: %s"
+        #    % (sshcmd, process.pid, stdout.decode().strip()),
+        #    flush=True,
+        #)
+    else:
+        print(
+            "Failed: %s, pid=%s, result: %s"
+            % (sshcmd, process.pid, stderr.decode().strip()),
+            flush=True,
+        )
+
+    result = [i for i in stdout.decode().strip().split()]
+    remotepid = process.pid
+    remotereturn = process.returncode
+    remoteerror = stderr.decode().strip()
+    return result, remotepid, remotereturn, remoteerror
+
+
+async def transcode_remote_command(transcode):
+    process = await asyncio.create_subprocess_shell(
+        transcode,
+        stderr=asyncio.subprocess.PIPE)
+
+    stderr = await process.communicate()
+
+    if process.returncode != 0:
+        print(
+            "Failed: %s, pid=%s, result: %s"
+            % (transcode, process.pid, stderr.decode().strip()),
+            flush=True,
+        )
+
+    transcodepid = process.pid
+    transcodereturn = process.returncode
+    transcodeerror = stderr.decode().strip()
+    #print("Result : %s, pid=%s, returncode=%s, error=%s" % (result, remotepid, remotereturn, remoteerror))
+    return transcodepid, transcodereturn, transcodeerror
+
+
+async def transcode_local_command(transcode):
+    process = await asyncio.create_subprocess_shell(
+        transcode,
+        stderr=asyncio.subprocess.PIPE)
+
+    stderr = await process.communicate()
+
+    if process.returncode != 0:
+        print(
+            "Failed: %s, pid=%s, result: %s"
+            % (transcode, process.pid, stderr.decode().strip()),
+            flush=True,
+        )
+
+    transcodepid = process.pid
+    transcodereturn = process.returncode
+    transcodeerror = stderr.decode().strip()
+    #print("Result : %s, pid=%s, returncode=%s, error=%s" % (result, remotepid, remotereturn, remoteerror))
+    return transcodepid, transcodereturn, transcodeerror
 
 def setup_logging():
     config = get_config()
@@ -324,15 +393,25 @@ def transcode_local():
 
     log.info("Launching transcode_local: %s\n" % args)
 
-    # Spawn the process
-    proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+    transcodepid, transcodereturn, transcodeerror = asyncio.run(transcode_local_command(args))
 
-    while True:
-        output = proc.stderr.readline()
-        if output == '' and proc.poll() is not None:
-            break
-        if output and is_debug:
-            log.debug(output.strip('\n'))
+    if transcodereturn != 0:
+        log.error("Local transcode failed! %s" % transcodeerror)
+    else:
+        log.info("Local transcode has finished. (pid %s)" % transcodepid)
+
+
+    # Spawn the process
+#    proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+#
+#    while True:
+#        output = proc.stderr.readline()
+#        if output == '' and proc.poll() is not None:
+#            break
+#        if output and is_debug:
+#            log.debug(output.strip('\n'))
+
+
 
 def transcode_remote():
     setup_logging()
@@ -372,7 +451,7 @@ def transcode_remote():
                 idx = i+1
                 break
 
-        # Found the requested video path
+        # Found the requested video: path
         path = args[idx]
 
         try:
@@ -402,37 +481,37 @@ def transcode_remote():
 
             servers = {}
             for line in proc.stdout.readlines():
-                hostname, port, user = line.strip().split()
-                servers[hostname] = {
+                server, port, user = line.strip().split()
+                servers[server] = {
                     "port": port,
                     "user": user
                 }
         except Exception as e:
             log.error("Error retrieving host list via '%s': %s" % (config["servers_script"], str(e)))
 
-    hostname, host = None, None
+    server, host = None, None
 
     # Let's try to load-balance
     min_load = None
-    for hostname, host in list(servers.items()):
+    for server, host in list(servers.items()):
 
-        log.debug("Getting load for host '%s'" % hostname)
-        #
-        #load = asyncio.run(get_system_load_remote(hostname, host["port"], host["user"]))
-        #
-        load = get_system_load_remote(hostname, host["port"], host["user"])
+        log.debug("Getting load for host '%s'" % server)
+
+        cmdtorun = 'prt3 get_load'
+        sshcmd = 'ssh %s@%s -p %s %s' % (host["user"], server, host["port"], format(quote(cmdtorun)))
+        load, loadpid, loadreturn, loaderror = [l for l in asyncio.run(get_system_load(sshcmd))]
 
         if not load:
             # If no load is returned, then it is likely that the host
             # is offline or unreachable
-            log.debug("Couldn't get load for host '%s'" % hostname)
+            log.debug("Couldn't get load for host '%s'" % server)
             continue
 
-        log.debug("Log for '%s': %s" % (hostname, str(load)))
+        log.debug("Log for '%s': %s" % (server, str(load)))
 
         # XXX: Use more that just 1-minute load?
         if min_load is None or min_load[1] > load[0]:
-            min_load = (hostname, load[0],)
+            min_load = (server, load[0],)
 
     if min_load is None:
         log.info("No hosts found...using local")
@@ -440,9 +519,9 @@ def transcode_remote():
 
     # Select lowest-load host
     log.info("Host with minimum load is '%s'" % min_load[0])
-    hostname, host = min_load[0], servers[min_load[0]]
+    server, host = min_load[0], servers[min_load[0]]
 
-    log.info("Using transcode host '%s'" % hostname)
+    log.info("Using transcode host '%s'" % server)
 
     # Remap the 127.0.0.1 reference to the proper address
     #command = command.replace("127.0.0.1", config["ipaddress"])
@@ -451,16 +530,21 @@ def transcode_remote():
     # TODO: Remap file-path to PMS URLs
     #
 
+    transcodepid, transcodereturn, transcodeerror = asyncio.run(transcode_remote_command(args))
+
+    if transcodereturn != 0:
+        log.error("Remote transcode failed! %s" % transcodeerror)
+    else:
+        log.info("Remote transcode has finished. (pid %s)" % transcodepid)
 
 
 
     log.info("Launching transcode_remote with args %s\n" % args)
 
     # Spawn the process
-    proc = subprocess.Popen(args)
-    proc.wait()
 
-    log.info("Transcode stopped on host '%s'" % hostname)
+
+    log.info("Transcode stopped on host '%s'" % server)
 
 
 def re_get(regex, string, group=0, default=None):
@@ -591,18 +675,17 @@ def check_config():
     }
 
     # Let's check SSH access
-    for address, server in list(config['servers'].items()):
-        printf("Host %s\n", address)
+    for server, host in list(config['servers'].items()):
+        printf("Host %s\n", server)
 
-        proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
-            "-p", server["port"], "prt3", "get_load"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.wait()
+        cmdtorun = 'prt3 get_load'
+        sshcmd = 'ssh %s@%s -p %s %s' % (host["user"], server, host["port"], format(quote(cmdtorun)))
+        load, loadpid, loadreturn, loaderror = [l for l in asyncio.run(get_system_load(sshcmd))]
 
         printf("  Connect: ")
-        if proc.returncode != 0:
+        if loadreturn != 0:
             printf("FAIL\n", color="red")
-            printf("    %s\n" % proc.stderr.read())
+            printf("    %s\n" % loaderror)
             continue
         else:
             printf("OK\n", color="green")
@@ -610,29 +693,35 @@ def check_config():
         for req_mode, paths in list(paths_modes.items()):
             for path in paths:
                 printf("  Path: '%s'\n", path)
-                proc = subprocess.Popen(["ssh", "%s@%s" % (server["user"], address),
-                    "-p", server["port"], "stat", "--printf='%U %a'", pipes.quote(path)],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                proc.wait()
+                pathoptions = '%U %a'
+                cmdtorun = 'stat --printf=%s %s' % (format(quote(pathoptions)), format(quote(path)))
+                sshcmd = 'ssh %s@%s -p %s %s' % (host["user"], server, host["port"], format(quote(cmdtorun)))
+                pathresult, pathpid, pathreturn, patherror = asyncio.run(remote_command(sshcmd))
+                #proc = subprocess.Popen(["ssh", "%s@%s" % (host["user"], server),
 
-                username, mode = proc.stdout.read().strip().split()
-                printf("    User:  %s\n", username)
-                printf("    Mode:  %s\n", mode)
-
-                if username != 'plex':
-                    printf("    WARN:  Not owned by plex user\n", color="yellow")
-                    if int(mode[-1]) < req_mode:
-                        printf("    ERROR: Bad permissions\n", color="red")
+                if pathreturn != 0:
+                    printf("FAIL\n", color="red")
+                    printf("    %s : %s\n" % (path, patherror))
+                    continue
                 else:
-                    if int(mode[0]) < req_mode:
-                        printf("    ERROR: Bad permissions\n", color="red")
+                    username, mode = pathresult[0], pathresult[1]
+                    printf("    User:  %s\n", username)
+                    printf("    Mode:  %s\n", mode)
 
-        printf("\n")
+                    if username != 'plex':
+                        printf("    WARN:  Not owned by plex user\n", color="yellow")
+                        if int(mode[-1]) < req_mode:
+                            printf("    ERROR: Bad permissions\n", color="red")
+                    else:
+                        if int(mode[0]) < req_mode:
+                            printf("    ERROR: Bad permissions\n", color="red")
+
+            printf("\n")
 
 
 def sessions():
     if psutil is None:
-        print("Missing required library 'psutil'.  Try 'pip install psutil'.")
+        print("Missing required library 'psutil'.  Try 'pip3 install psutil'.")
         return
 
     sessions = get_sessions()
@@ -692,13 +781,21 @@ def main():
     elif sys.argv[1] == "get_cluster_load":
         print("Cluster Load")
         config = get_config()
-        servers = config["servers"]
-        for address, server in list(servers.items()):
-            load = ["%0.2f%%" % l for l in get_system_load_remote(address, server["port"], server["user"])]
-            #
-            # load = ["%0.2f%%" % l for l in asyncio.run(get_system_load_remote(address, server["port"], server["user"]))]
-            #
-            print(("  %15s: %s" % (address, ", ".join(load))))
+        for server, host in list(config['servers'].items()):
+            log.debug("Getting load for host '%s'" % server)
+            cmdtorun = 'prt3 get_load'
+            sshcmd = 'ssh %s@%s -p %s %s' % (host["user"], server, host["port"], format(quote(cmdtorun)))
+
+            load, loadpid, loadreturn, loaderror = [l for l in asyncio.run(get_system_load(sshcmd))]
+            if not load:
+                # If no load is returned, then it is likely that the host
+                # is offline or unreachable
+                log.debug("Couldn't get load for host '%s'" % server)
+                continue
+            else:
+                print("  %15s: %s%% %s%% %s%%" % (server, load[0], load[1], load[2]))
+                log.debug("Log for '%s': %s" % (server, str(load)))
+
 
     elif sys.argv[1] == "install":
         print("Installing Plex Remote Transcoder")
