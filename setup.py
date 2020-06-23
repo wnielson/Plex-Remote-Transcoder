@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+from pbr import find_package
 
 from codecs import open
 from os import path
@@ -15,20 +16,20 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='prt3',
     version=get_version(),
-    description='A remote transcoder for Plex(3)',
+    description='A remote transcoder for Plex (Python3)',
     long_description=long_description,
     url='https://github.com/wnielson/Plex-Remote-Transcoder',
-    author='Weston Nielson',
-    author_email='wnielson@github',
+    author='Andy Livingstone',
+    author_email='liviynz@github',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     keywords='plex media server, distributed plex, load balancing, remote transcoding',
     py_modules=["prt3"],
@@ -39,5 +40,5 @@ setup(
             'prt3_remote=prt3:transcode_remote'
         ],
     },
-    install_requires=['termcolor', 'psutil']
+    install_requires=['termcolor', 'psutil', 'pbr', 'asyncio' ]
 )
